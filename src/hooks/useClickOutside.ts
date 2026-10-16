@@ -17,7 +17,8 @@ export function useClickOutside<T extends HTMLElement>(
     if (!enabled) return;
 
     const onPointerDown = (event: MouseEvent | TouchEvent) => {
-      const nodes = Array.isArray(ref) ? ref.map((item) => item.current) : [ref.current];
+      const targets: ReadonlyArray<RefObject<T | null>> = Array.isArray(ref) ? ref : [ref];
+      const nodes = targets.map((item) => item.current);
       if (nodes.every((node) => !node)) return;
       if (
         event.target instanceof Node &&
