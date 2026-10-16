@@ -6,6 +6,7 @@ import { NotesPage } from '@/features/notes/NotesPage';
 import { CalendarPage } from '@/features/calendar/CalendarPage';
 import { HabitsPage } from '@/features/habits/HabitsPage';
 import { PomodoroPage } from '@/features/pomodoro/PomodoroPage';
+import { CountdownPage } from '@/features/countdown/CountdownPage';
 import { BookmarksPage } from '@/features/bookmarks/BookmarksPage';
 import { AnalyticsPage } from '@/features/analytics/AnalyticsPage';
 import { NotFoundPage } from '@/features/shell/NotFoundPage';
@@ -25,6 +26,7 @@ export const router = createHashRouter([
       { path: 'calendar', element: <CalendarPage /> },
       { path: 'habits', element: <HabitsPage /> },
       { path: 'pomodoro', element: <PomodoroPage /> },
+      { path: 'countdown', element: <CountdownPage /> },
       { path: 'bookmarks', element: <BookmarksPage /> },
       { path: 'analytics', element: <AnalyticsPage /> },
       { path: '*', element: <NotFoundPage /> },

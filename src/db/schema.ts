@@ -59,6 +59,22 @@ export interface NoteFolder {
   updatedAt: ISODateTime;
 }
 
+export type CounterMode = 'down' | 'up';
+
+export interface Countdown {
+  id: string;
+  title: string;
+  mode: CounterMode;
+  /** 倒计时为目标日，正计时为起始日，YYYY-MM-DD */
+  date: DateKey;
+  color: string;
+  /** lucide 图标名；旧数据可能没有 */
+  icon?: string;
+  order: number;
+  createdAt: ISODateTime;
+  updatedAt: ISODateTime;
+}
+
 export interface Habit {
   id: string;
   name: string;
@@ -157,6 +173,7 @@ export class WorkbenchDB extends Dexie {
   pomodoros!: Table<Pomodoro, string>;
   events!: Table<CalendarEvent, string>;
   bookmarks!: Table<Bookmark, string>;
+  countdowns!: Table<Countdown, string>;
   meta!: Table<MetaRecord, string>;
   trash!: Table<TrashRecord, string>;
 
@@ -191,6 +208,10 @@ export class WorkbenchDB extends Dexie {
             if (note.folderId === undefined) note.folderId = null;
           });
       });
+
+    this.version(3).stores({
+      countdowns: '&id, mode, date, order',
+    });
   }
 }
 

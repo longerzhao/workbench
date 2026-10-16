@@ -112,6 +112,18 @@ const bookmarkSchema = z.looseObject({
   createdAt: z.string(),
 });
 
+const countdownSchema = z.looseObject({
+  id: z.string(),
+  title: z.string(),
+  mode: z.enum(['down', 'up']),
+  date: z.string(),
+  color: z.string(),
+  icon: z.string().optional(),
+  order: z.number(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
 const metaSchema = z.looseObject({ key: z.string(), value: z.string() });
 
 /** 每个表都允许缺席（兼容只导出了部分的备份） */
@@ -129,6 +141,7 @@ export const backupSchema = z.looseObject({
     pomodoros: z.array(pomodoroSchema).default([]),
     events: z.array(eventSchema).default([]),
     bookmarks: z.array(bookmarkSchema).default([]),
+    countdowns: z.array(countdownSchema).default([]),
     meta: z.array(metaSchema).default([]),
   }),
 });
@@ -146,8 +159,9 @@ export const BACKUP_TABLES = [
   'pomodoros',
   'events',
   'bookmarks',
+  'countdowns',
   'meta',
-] as const satisfies readonly (EntityTableName | 'meta' | 'noteFolders')[];
+] as const satisfies readonly (EntityTableName | 'meta' | 'noteFolders' | 'countdowns')[];
 
 export type BackupTable = (typeof BACKUP_TABLES)[number];
 
@@ -156,7 +170,7 @@ export type BackupTable = (typeof BACKUP_TABLES)[number];
 /* -------------------------------------------------------------------------- */
 
 export async function buildSnapshot(): Promise<BackupFile> {
-  const [todos, projects, notes, noteFolders, habits, habitLogs, pomodoros, events, bookmarks, meta] =
+  const [todos, projects, notes, noteFolders, habits, habitLogs, pomodoros, events, bookmarks, countdowns, meta] =
     await Promise.all([
       db.todos.toArray(),
       db.projects.toArray(),
@@ -167,6 +181,7 @@ export async function buildSnapshot(): Promise<BackupFile> {
       db.pomodoros.toArray(),
       db.events.toArray(),
       db.bookmarks.toArray(),
+      db.countdowns.toArray(),
       db.meta.toArray(),
     ]);
 
@@ -184,6 +199,7 @@ export async function buildSnapshot(): Promise<BackupFile> {
       pomodoros,
       events,
       bookmarks,
+      countdowns,
       meta,
     },
   } as unknown as BackupFile;

@@ -28,6 +28,7 @@ import { ScheduleCard } from './cards/ScheduleCard';
 import { HabitsCard } from './cards/HabitsCard';
 import { BookmarksCard } from './cards/BookmarksCard';
 import { NotesCard } from './cards/NotesCard';
+import { CountdownCard } from './cards/CountdownCard';
 
 // 趋势卡带 recharts，单独切块按需加载，不拖慢首屏
 const TrendCard = lazy(() =>
@@ -42,6 +43,7 @@ const CARD_COMPONENTS: Record<CardId, ComponentType> = {
   bookmarks: BookmarksCard,
   notes: NotesCard,
   trend: TrendCard,
+  countdown: CountdownCard,
 };
 
 /** 12 列栅格：<768 单列，768–1279 两列，≥1280 按注册表给的比例分列 */

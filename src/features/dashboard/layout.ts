@@ -4,6 +4,7 @@ import {
   Flame,
   ListChecks,
   StickyNote,
+  Hourglass,
   Timer,
   TrendingUp,
   type LucideIcon,
@@ -16,7 +17,8 @@ export type CardId =
   | 'habits'
   | 'bookmarks'
   | 'notes'
-  | 'trend';
+  | 'trend'
+  | 'countdown';
 
 export interface CardDef {
   id: CardId;
@@ -82,6 +84,14 @@ export const CARD_DEFS: CardDef[] = [
     colSpan: 6,
     rowSpan: 3,
     summary: '一行输入即存为笔记',
+  },
+  {
+    id: 'countdown',
+    title: '计时',
+    icon: Hourglass,
+    colSpan: 4,
+    rowSpan: 3,
+    summary: '最近一个法定假期或自定义倒计时',
   },
   {
     id: 'trend',

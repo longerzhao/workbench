@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   ListChecks,
   NotebookPen,
+  Hourglass,
   Timer,
   type LucideIcon,
 } from 'lucide-react';
@@ -26,6 +27,7 @@ export const NAV_ITEMS: NavItem[] = [
   { path: '/calendar', label: '日历', icon: CalendarDays, badgeKey: 'todayEvents', hint: '日程安排' },
   { path: '/habits', label: '习惯', icon: Flame, badgeKey: 'habits', hint: '打卡与连续天数' },
   { path: '/pomodoro', label: '番茄', icon: Timer, hint: '专注统计' },
+  { path: '/countdown', label: '计时', icon: Hourglass, hint: '倒计时与正计时' },
   { path: '/bookmarks', label: '书签', icon: Bookmark, badgeKey: 'bookmarks', hint: '常用入口' },
   { path: '/analytics', label: '看板', icon: ChartColumn, hint: '趋势与统计' },
 ];

@@ -17,5 +17,7 @@ export {
   DEFAULT_BOOKMARK_GROUP,
 } from './bookmarkRepo';
 export type { NewBookmarkInput } from './bookmarkRepo';
+export { countdownRepo } from './countdownRepo';
+export type { NewCountdownInput } from './countdownRepo';
 export { projectRepo } from './projectRepo';
 export type { NewProjectInput } from './projectRepo';
