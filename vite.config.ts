@@ -4,6 +4,8 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
+  // GitHub Pages 项目站点：https://longerzhao.github.io/workbench/
+  base: '/workbench/',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
