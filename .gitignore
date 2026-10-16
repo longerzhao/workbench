@@ -1,0 +1,38 @@
+# dependencies
+node_modules/
+.pnpm-store/
+.npm-cache/
+
+# build output
+dist/
+dist-ssr/
+*.local
+
+# logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# editor / os
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.swp
+
+# test / cache
+coverage/
+.vite/
+*.tsbuildinfo
+
+# local backups exported from the workbench UI
+backups/
+
+# scratch previews and superseded assets
+.tmp*
+public/zodiac_bak/
+public/shengxiao_pinyin_svg.zip
+
+# machine-local package manager config (mirror + store path)
+.npmrc
