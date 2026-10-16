@@ -14,6 +14,9 @@ export interface DatePickerProps {
   className?: string;
   /** 触发器额外 class */
   triggerClassName?: string;
+  /** 为 false 时不显示「清除」，用于必填日期 */
+  clearable?: boolean;
+  format?: string;
 }
 
 export function DatePicker({
@@ -22,6 +25,8 @@ export function DatePicker({
   placeholder = '未设置',
   className,
   triggerClassName,
+  clearable = true,
+  format = 'M月D日',
 }: DatePickerProps) {
   const initial = value ? dayjs(value) : dayjs();
   const [cursor, setCursor] = useState(() => ({
@@ -35,7 +40,7 @@ export function DatePicker({
   );
   const today = todayKey();
 
-  const label = value ? dayjs(value).format('M月D日') : placeholder;
+  const label = value ? dayjs(value).format(format) : placeholder;
 
   return (
     <Dropdown
@@ -45,7 +50,7 @@ export function DatePicker({
         <button
           type="button"
           className={cn(
-            'flex h-8 w-full items-center justify-between gap-2 rounded-[10px] border border-line bg-surface px-2.5 text-left text-[0.8125rem] text-ink transition-colors hover:border-line-strong hover:bg-surface-2',
+            'flex h-9 w-full items-center justify-between gap-2 rounded-[10px] border border-line bg-surface px-2.5 text-left text-[0.8125rem] text-ink transition-colors hover:border-line-strong hover:bg-surface-2',
             !value && 'text-ink-subtle',
             triggerClassName,
           )}
@@ -129,16 +134,20 @@ export function DatePicker({
           </div>
 
           <div className="flex items-center justify-between border-t border-line pt-2">
-            <button
-              type="button"
-              className="rounded-lg px-2 py-1 text-[0.75rem] text-ink-muted hover:bg-surface-2 hover:text-ink"
-              onClick={() => {
-                onChange(undefined);
-                close();
-              }}
-            >
-              清除
-            </button>
+            {clearable ? (
+              <button
+                type="button"
+                className="rounded-lg px-2 py-1 text-[0.75rem] text-ink-muted hover:bg-surface-2 hover:text-ink"
+                onClick={() => {
+                  onChange(undefined);
+                  close();
+                }}
+              >
+                清除
+              </button>
+            ) : (
+              <span />
+            )}
             <button
               type="button"
               className="rounded-lg px-2 py-1 text-[0.75rem] font-medium text-primary-text hover:bg-primary-soft"

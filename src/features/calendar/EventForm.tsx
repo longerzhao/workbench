@@ -3,7 +3,10 @@ import type { CalendarEvent } from '@/db/schema';
 import { eventRepo } from '@/db/repositories';
 import { toast } from '@/app/store/toast';
 import { Button } from '@/components/ui/Button';
+import { Checkbox } from '@/components/ui/Checkbox';
+import { DatePicker } from '@/components/ui/DatePicker';
 import { Modal } from '@/components/ui/Modal';
+import { TimePicker } from '@/components/ui/TimePicker';
 import { isValidTimeRange } from '@/lib/calendarGrid';
 import { dayjs, type DateKey } from '@/lib/date';
 import { cn } from '@/lib/cn';
@@ -123,7 +126,7 @@ function EventFormInner({
           e.preventDefault();
           void submit();
         }}
-        className="space-y-3"
+        className="space-y-4"
       >
         <label className="block space-y-1.5">
           <span className="text-[0.8125rem] text-ink-muted">标题</span>
@@ -136,46 +139,33 @@ function EventFormInner({
           />
         </label>
 
-        <label className="block space-y-1.5">
+        <div className="space-y-1.5">
           <span className="text-[0.8125rem] text-ink-muted">日期</span>
-          <input
-            type="date"
-            className="input"
+          <DatePicker
             value={date}
-            onChange={(e) => setDate(e.target.value as DateKey)}
+            clearable={false}
+            format="YYYY/MM/DD"
+            onChange={(next) => {
+              if (next) setDate(next);
+            }}
           />
-        </label>
+        </div>
 
-        <label className="flex items-center gap-2 text-[0.8125rem] text-ink-muted">
-          <input
-            type="checkbox"
-            checked={allDay}
-            onChange={(e) => setAllDay(e.target.checked)}
-            className="size-3.5 accent-[var(--primary)]"
-          />
-          全天
-        </label>
+        <div className="flex items-center justify-between rounded-[10px] border border-line px-3 py-2">
+          <span className="text-[0.8125rem] text-ink">全天</span>
+          <Checkbox checked={allDay} onChange={setAllDay} label="全天" variant="select" />
+        </div>
 
         {!allDay ? (
           <div className="grid grid-cols-2 gap-3">
-            <label className="block space-y-1.5">
+            <div className="space-y-1.5">
               <span className="text-[0.8125rem] text-ink-muted">开始</span>
-              <input
-                type="time"
-                className="input"
-                value={start}
-                onChange={(e) => setStart(e.target.value)}
-              />
-            </label>
-            <label className="block space-y-1.5">
+              <TimePicker value={start} onChange={setStart} />
+            </div>
+            <div className="space-y-1.5">
               <span className="text-[0.8125rem] text-ink-muted">结束</span>
-              <input
-                type="time"
-                className="input"
-                value={end}
-                onChange={(e) => setEnd(e.target.value)}
-              />
-            </label>
+              <TimePicker value={end} onChange={setEnd} />
+            </div>
           </div>
         ) : null}
 
@@ -187,10 +177,11 @@ function EventFormInner({
                 key={c}
                 type="button"
                 aria-label={c}
+                aria-pressed={color === c}
                 onClick={() => setColor(c)}
                 className={cn(
-                  'size-7 rounded-full border-2',
-                  color === c ? 'border-ink' : 'border-transparent',
+                  'size-7 rounded-full ring-2 ring-offset-2 ring-offset-surface transition-shadow',
+                  color === c ? 'ring-primary' : 'ring-transparent hover:ring-line-strong',
                 )}
                 style={{ backgroundColor: c }}
               />

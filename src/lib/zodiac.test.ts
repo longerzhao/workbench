@@ -17,7 +17,7 @@ describe('zodiacKeyForYear', () => {
 
 describe('zodiac helpers', () => {
   it('builds src and label', () => {
-    expect(zodiacSrcForYear(2026)).toBe('/zodiac/ma.svg');
+    expect(zodiacSrcForYear(2026)).toBe(`${import.meta.env.BASE_URL}zodiac/ma.svg`);
     expect(zodiacLabelForYear(2026)).toBe('马');
   });
 });

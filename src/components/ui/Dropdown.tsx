@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/cn';
 import { useClickOutside } from '@/hooks/useClickOutside';
 
@@ -21,8 +22,43 @@ export function Dropdown({
   className,
 }: DropdownProps) {
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
-  useClickOutside(ref, () => setOpen(false), open);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useClickOutside([ref, menuRef], () => setOpen(false), open);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+
+    const place = () => {
+      const trigger = ref.current?.getBoundingClientRect();
+      const menu = menuRef.current?.getBoundingClientRect();
+      if (!trigger) return;
+      const menuHeight = menu?.height ?? 240;
+      const menuWidth = menu?.width ?? trigger.width;
+      const gap = 6;
+      const spaceBelow = window.innerHeight - trigger.bottom;
+      const spaceAbove = trigger.top;
+      const openUp =
+        side === 'top' || (spaceBelow < menuHeight + gap && spaceAbove > spaceBelow);
+      const top = openUp
+        ? Math.max(8, trigger.top - menuHeight - gap)
+        : Math.min(window.innerHeight - menuHeight - 8, trigger.bottom + gap);
+      const rawLeft = align === 'end' ? trigger.right - menuWidth : trigger.left;
+      const left = Math.max(8, Math.min(rawLeft, window.innerWidth - menuWidth - 8));
+      setPos({ top, left });
+    };
+
+    place();
+    const frame = requestAnimationFrame(place);
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place, true);
+    };
+  }, [open, align, side]);
 
   useEffect(() => {
     if (!open) return;
@@ -51,19 +87,23 @@ export function Dropdown({
         {trigger}
       </div>
 
-      {open ? (
-        <div
-          role="menu"
-          className={cn(
-            'card animate-pop-in absolute z-50 min-w-[11rem] overflow-hidden p-1 shadow-[var(--shadow-pop)]',
-            side === 'top' ? 'bottom-full mb-1.5' : 'top-full mt-1.5',
-            align === 'end' ? 'right-0' : 'left-0',
-            className,
-          )}
-        >
-          {children(() => setOpen(false))}
-        </div>
-      ) : null}
+      {open
+        ? createPortal(
+            <div
+              ref={menuRef}
+              role="menu"
+              style={{ top: pos?.top ?? -9999, left: pos?.left ?? -9999 }}
+              className={cn(
+                'card animate-pop-in fixed z-[80] min-w-[11rem] overflow-hidden p-1 shadow-[var(--shadow-pop)]',
+                !pos && 'invisible',
+                className,
+              )}
+            >
+              {children(() => setOpen(false))}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

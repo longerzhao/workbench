@@ -38,7 +38,8 @@ export function zodiacKeyForYear(year: number): ZodiacKey {
 }
 
 export function zodiacSrcForYear(year: number): string {
-  return `/zodiac/${zodiacKeyForYear(year)}.svg`;
+  const base = import.meta.env.BASE_URL ?? '/';
+  return `${base}zodiac/${zodiacKeyForYear(year)}.svg`;
 }
 
 export function zodiacLabelForYear(year: number): string {
