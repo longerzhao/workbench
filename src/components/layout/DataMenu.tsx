@@ -222,13 +222,16 @@ export function DataMenu() {
   );
 }
 
+/** 备份里各表的显示名；顺序与 lib/backup 的 BACKUP_TABLES 保持一致（meta 不展示） */
 const TABLE_LABEL: Record<string, string> = {
   todos: '待办',
   projects: '项目',
   notes: '笔记',
+  noteFolders: '目录',
   habits: '习惯',
   habitLogs: '打卡',
   pomodoros: '番茄',
   events: '日程',
   bookmarks: '书签',
+  countdowns: '计时',
 };
