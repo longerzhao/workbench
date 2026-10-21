@@ -36,3 +36,6 @@ public/shengxiao_pinyin_svg.zip
 
 # machine-local package manager config (mirror + store path)
 .npmrc
+
+# local agent workspace data (memory, scratch)
+.workbuddy/
