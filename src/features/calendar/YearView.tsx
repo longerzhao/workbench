@@ -33,11 +33,23 @@ export function YearView({ anchor, events, onSelectMonth, onSelectDay }: YearVie
         title={`${year} · ${zodiacLabel}`}
         className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center"
       >
-        <img
-          src={zodiacSrc}
-          alt=""
-          className="max-h-[85%] max-w-[min(88%,34rem)] object-contain opacity-[0.42] dark:opacity-[0.55]"
-          draggable={false}
+        {/*
+          生肖剪纸是单色 SVG（根节点 fill="#c41e3a"），当作 mask 用主题色填充，
+          这样水印颜色跟随 --primary：浅色 #7c3aed / 深色 #8b5cf6。
+          evenodd 镂空靠 alpha 通道保留，细节不丢。
+        */}
+        <div
+          className="h-[85%] w-[85%] max-w-[min(88%,34rem)] bg-primary opacity-[0.14] dark:opacity-[0.22]"
+          style={{
+            maskImage: `url(${zodiacSrc})`,
+            WebkitMaskImage: `url(${zodiacSrc})`,
+            maskRepeat: 'no-repeat',
+            WebkitMaskRepeat: 'no-repeat',
+            maskPosition: 'center',
+            WebkitMaskPosition: 'center',
+            maskSize: 'contain',
+            WebkitMaskSize: 'contain',
+          }}
         />
       </div>
 
