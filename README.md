@@ -31,8 +31,9 @@ pnpm dev
 | `pnpm test` | Vitest 单跑一轮（`src/**/*.test.ts`，node 环境） |
 | `pnpm test:watch` | Vitest watch 模式 |
 
-单测现状：10 个测试文件、48 个用例，全部通过；覆盖 `lib/` 下的纯函数
-（过滤、统计、热力图、日历网格、笔记树、农历换算等）。`db/repositories/` 目前仍无测试。
+单测现状：14 个测试文件、98 个用例，全部通过。覆盖 `lib/` 下的纯函数
+（过滤、统计、热力图、日历网格、笔记树、农历换算、模糊匹配）以及
+`db/repositories/` 的读写行为（用 `fake-indexeddb` 在 node 里跑真实的 Dexie）。
 
 ## 主页面
 
@@ -62,6 +63,29 @@ pnpm dev
 
 主题三态循环：浅色 → 深色 → 跟随系统。
 
+## 命令面板与快捷键
+
+顶栏右侧的「搜索 ⌘K」按钮或直接按快捷键，打开一个全局命令面板：
+
+- 模糊搜索待办与笔记（子序列匹配，连续/开头命中权重更高，命中字符高亮）
+- 跳转到任意模块
+- 输入任意文字后回车，可直接**新建**一条同名待办或笔记——输入「买牛奶」回车，待办就建好了
+- 空输入时提供「切换主题」等快捷操作
+
+| 快捷键 | 作用 |
+| --- | --- |
+| `⌘K` / `Ctrl+K` | 开合命令面板 |
+| `/` | 打开搜索 |
+| `N` | 直接进入新建（输入标题回车即建） |
+| `↑` `↓` | 在结果间移动 |
+| `↵` | 执行选中项 |
+| `Esc` | 关闭面板 / 弹窗 |
+
+单键快捷键在输入框、文本域和 contenteditable 里会自动让路，不会抢走你正在打的字；
+中文输入法组合期间也不触发。
+
+「新建」刻意排在结果列表最后：输入「日历」时，回车应该跳到日历页，而不是建一条叫日历的待办。
+
 ## 模块页
 
 | 路由 | 内容 |
@@ -85,6 +109,7 @@ pnpm dev
 - **12 张表**：`todos` `projects` `notes` `noteFolders` `habits` `habitLogs`
   `pomodoros` `events` `bookmarks` `countdowns` `meta` `trash`，schema 已迁移到 `version(3)`
 - 删除是**软删除**：实体先落进 `trash` 表，7 天内可撤销，超过保留期在启动时清理
+- **离线可用**：注册了 Service Worker，断网后刷新仍能打开页面，数据本来就在本地
 - 顶栏 **数据** 菜单支持：
   - **导出备份 JSON** —— 文件名 `workbench-YYYYMMDD-HHmm.json`，含 11 张表（回收站刻意不导出）
   - **从备份导入** —— zod 校验结构，可选「合并」或「覆盖」；覆盖前会自动先下载一份当前数据的快照；
@@ -109,24 +134,31 @@ features/*  ──useLiveQuery──►  db/repositories/*  ──►  Dexie / I
 
 ```
 src/
-├── app/          # router、navigation 导航表、store（ui / pomodoro / toast）
-├── db/           # schema（12 张表 + 3 个版本迁移）、seed 示例数据、9 个 repository
+├── app/          # router、lazyPages 路由懒加载表、navigation、store（ui / pomodoro / toast / command）
+├── db/           # schema（12 张表 + 3 个版本迁移）、seed 示例数据、9 个 repository（带单测）
 ├── features/     # dashboard（Bento 网格 + 8 张卡）、todos、notes、calendar、
 │                 # habits、pomodoro、countdown、bookmarks、analytics、shell
-├── components/   # ui 原语（Panel/Button/Modal/Dropdown/DatePicker/进度环…）、layout 外壳
-├── hooks/        # useNow / useTheme / useCounts / useClickOutside
-├── lib/          # date / stats / backup / countdown / heatmap / calendarGrid 等纯函数
+├── components/   # ui 原语（Panel/Button/Modal/Dropdown/DatePicker/进度环…）、layout 外壳、command 面板
+├── hooks/        # useNow / useTheme / useCounts / useClickOutside / useHotkeys
+├── lib/          # date / stats / backup / countdown / heatmap / calendarGrid / fuzzy 等纯函数
 ├── styles/       # Tailwind 4 入口 + 葡萄紫主题令牌
 └── types/        # lunar-javascript 的类型声明
+
+public/
+├── zodiac/       # 十二生肖剪纸 SVG（年视图水印，作 mask 用）
+├── icons/        # PWA 图标 192 / 512
+├── manifest.webmanifest
+└── sw.js         # Service Worker（手写，无第三方依赖）
 ```
 
-规模：129 个 `.ts`/`.tsx`（其中 69 个 `.tsx`），约 13,290 行。
+规模：138 个 `.ts`/`.tsx`（其中 70 个 `.tsx`），约 14,318 行；另有 14 个测试文件。
 
 ## 技术栈
 
 Vite 8 · React 19 · TypeScript 5.9 · Tailwind CSS 4 · Dexie 4 · Zustand 5 ·
 react-router 7（hash 路由）· Recharts 3（按需加载）· @dnd-kit · zod 4 ·
-lunar-javascript（农历/节气）· react-markdown · dayjs · lucide-react · Vitest 5
+lunar-javascript（农历/节气）· react-markdown · dayjs · lucide-react ·
+Vitest 5 + fake-indexeddb（测试）
 
 > TypeScript 刻意锁在 5.9：`typescript-eslint@8` 的 peer 范围是 `>=4.8.4 <6.1.0`，TS 7 不在支持范围内。
 
@@ -146,14 +178,23 @@ strict-peer-dependencies=false
 如果直接改回全局 store/cache 后 `pnpm install` 报 `EPERM`，多半是 `~/.npm` 下有 root 所有的
 残留文件（`sudo chown -R $(id -u):$(id -g) ~/.npm`），而不是项目本身的问题。这两个目录已加进 `.gitignore`。
 
-**已知构建提示**：`pnpm build` 会报 chunk 超过 900 kB。实际产物是
-`index-*.js 1.58 MB（gzip 489 KB）` + `TrendCard-*.js 2.37 KB` + CSS 45 KB。
-趋势卡已用 `React.lazy` 单独切块（recharts 跟着走），但主包仍未手工分包——留待 P7。
+**构建产物**：各页面已按路由拆成独立 chunk，不再有 chunk 体积警告。
+首屏只加载两个块——`index-*.js 449 kB（gzip 142 kB）` 与共享依赖块
+`471 kB（gzip 155 kB）`，合计 gzip 约 297 kB；recharts（352 kB）跟着看板页、
+react-markdown（135 kB）跟着笔记页按需加载。
 
 ## 部署
 
 `.github/workflows/pages.yml`：push 到 `main` → Node 22 + pnpm 10 → `pnpm install --frozen-lockfile`
 → `pnpm build` → 上传 `dist` 发布到 GitHub Pages。`vite.config.ts` 的 `base` 必须与仓库名一致。
+
+## 安装与离线
+
+- 桌面 Chrome / Edge：地址栏右侧「安装」；Android Chrome：「添加到主屏幕」；iOS Safari：共享 →「添加到主屏幕」
+- Service Worker **只在生产构建注册**，开发环境不注册（否则会把 HMR 的请求也缓存住）
+- 策略：导航请求 network-first 回退缓存的 `index.html`，带 hash 的静态资源 cache-first
+- 数据全在 IndexedDB，不经过网络，所以离线的关键只是「页面能打开」
+- 发版若改了页面结构，升一下 `public/sw.js` 里的 `VERSION`，`activate` 会清掉旧缓存
 
 ## 进度
 
@@ -167,7 +208,8 @@ strict-peer-dependencies=false
 | P5 | 习惯年度热力图、番茄统计 | ✅ |
 | P6 | 日历月/周/年视图、看板多维图表 | ✅ |
 | P6.5 | 倒计时/正计时 + 法定节假日、生肖年视图 | ✅ |
-| P7 | ⌘K 命令面板、全局快捷键、PWA 离线、仓储层测试、主包分包 | 待做 |
+| P7 | ⌘K 命令面板、全局快捷键、仓储层测试、PWA 离线、主包分包 | ✅ |
 
-P7 目前一项都没开始：没有 `command` 目录，除表单与弹窗外没有全局快捷键，
-没有 manifest / service worker。**核心操作已能在主页面与各模块页完成**，共用同一份数据。
+P7 已完成：命令面板（含模糊搜索、跳转、输入即新建）、全局快捷键、36 个仓储层用例、
+manifest + 手写 Service Worker、按路由拆分 chunk。**核心操作都能在主页面与各模块页完成**，
+共用同一份数据。
