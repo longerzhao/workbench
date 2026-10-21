@@ -1,14 +1,19 @@
 # 个人工作台 · zlong-workbench
 
-本地优先的个人工作台：把**待办 / 笔记 / 日历 / 习惯 / 番茄钟 / 书签 / 数据看板**收进同一个主页面。
+本地优先的个人工作台：把**待办 / 笔记 / 日历 / 习惯 / 番茄钟 / 倒计时 / 书签 / 数据看板**收进同一个应用。
 纯前端、零后端、无网络请求，数据全部留在你自己的浏览器里。
+
+在线版本：<https://longerzhao.github.io/workbench/>
 
 ## 快速开始
 
 ```bash
 pnpm install
-pnpm dev          # http://127.0.0.1:5273
+pnpm dev
 ```
+
+打开 **<http://127.0.0.1:5273/workbench/>**（注意路径前缀：`vite.config.ts` 里 `base: '/workbench/'`
+是为 GitHub Pages 项目站点设的，访问根路径会被重定向过去）。
 
 首次打开会灌一批示例数据，让主页面立刻是「活的」。想从零开始，用顶栏的
 **数据 → 清空本地数据**，之后不会再自动播种。
@@ -17,20 +22,25 @@ pnpm dev          # http://127.0.0.1:5273
 
 | 命令 | 作用 |
 | --- | --- |
-| `pnpm dev` | 启动开发服务器（HMR） |
+| `pnpm dev` | 启动开发服务器（HMR），127.0.0.1:5273 |
 | `pnpm build` | 类型检查 + 生产构建到 `dist/` |
 | `pnpm preview` | 预览构建产物 |
 | `pnpm typecheck` | 只跑 `tsc --noEmit` |
 | `pnpm lint` | ESLint（含 react-hooks v7 的编译期规则） |
 | `pnpm format` | Prettier 格式化 `src/` |
-| `pnpm test` | Vitest（当前 `lib/` 下用例待补） |
+| `pnpm test` | Vitest 单跑一轮（`src/**/*.test.ts`，node 环境） |
+| `pnpm test:watch` | Vitest watch 模式 |
+
+单测现状：10 个测试文件、48 个用例，全部通过；覆盖 `lib/` 下的纯函数
+（过滤、统计、热力图、日历网格、笔记树、农历换算等）。`db/repositories/` 目前仍无测试。
 
 ## 主页面
 
-三栏结构：左侧模块导航 + 今日完成率环，中间 **12 列 Bento 卡片网格**，窄屏自动降级为
-两列/单列 + 底部标签栏。
+三栏结构：左侧模块导航 + 今日进度环，中间 **12 列 Bento 卡片网格**，窄屏自动降级为
+两列/单列 + 底部标签栏（`<768` 单列、`768–1279` 两列、`≥1280` 十二列）。
+行高 96px，卡片统一 `rowSpan: 3`，列宽只有 4 列和 6 列两种。
 
-8 张卡片：
+**8 张卡片**：
 
 | 卡片 | 能直接做的事 |
 | --- | --- |
@@ -38,23 +48,48 @@ pnpm dev          # http://127.0.0.1:5273
 | 番茄钟 | 开始/暂停/继续/放弃，切换专注与休息，关联今日任务 |
 | 今日日程 | 看当天时间轴，按时段新增日程 |
 | 习惯打卡 | 近 7 天矩阵，点格子即可补打或取消 |
-| 快捷入口 | 点击跳转并累计频次，卡片内即可新增 |
+| 快捷入口 | 按分组展示常用网址，点击跳转并累计频次 |
 | 速记 | 一行输入回车存为笔记，Shift+Enter 换行 |
-| 本周趋势 | 近 7 天完成量柱状图 + 专注/打卡汇总 |
-| 今日进度 | 常驻侧栏的完成率环、专注时长、连续打卡 |
+| 计时 | 最近一个法定假期倒计时，或自定义倒计时/正计时 |
+| 本周趋势 | 近 7 天完成量柱状图 + 专注/打卡汇总（带 Recharts，`React.lazy` 按需加载） |
 
-卡片可以**整卡拖拽重排**（按住拖 8px 以上才触发，所以点击照常穿透到卡内元素），
-也可以在**设置**里逐张显示/隐藏、一键重置布局。布局存在浏览器本地。
+外加**常驻侧栏的「今日进度」**：完成率环 + 今日完成数 + 专注时长 + 连续打卡天数。
+它不参与卡片的显隐与排序。
+
+**交互**：卡片头部最左侧有拖拽手柄（hover 时出现），PointerSensor 设了 8px 触发距离，
+所以卡片内的点击不会被误判成拖动。设置里可逐张显示/隐藏、一键重置布局；顺序与显隐存在
+`workbench:ui`，`index.html` 有一段内联脚本在首屏前读取它，避免深色模式白屏闪烁。
+
+主题三态循环：浅色 → 深色 → 跟随系统。
+
+## 模块页
+
+| 路由 | 内容 |
+| --- | --- |
+| `/#/` | 总览（上面的 Bento 网格） |
+| `/#/todos` | 双栏：智能列表（今天/本周/收件箱/全部/已完成/回收站）+ 项目；子任务、优先级、标签、拖拽排序、批量改期/归档、回收站恢复 |
+| `/#/notes` | 左文件夹树 + 右编辑器；编辑/预览 Tab（`react-markdown`，不解析 raw HTML）、标签、置顶 |
+| `/#/calendar` | 月/周/年三视图 + 日程 CRUD；暂不支持跨天与重复事件 |
+| `/#/habits` | 年度热力图（全部/单习惯）+ 列表 CRUD、排序、归档、连续天数 |
+| `/#/pomodoro` | 今日/本周汇总、趋势、最近会话；计时器仍在主页卡 |
+| `/#/countdown` | 法定假期（元旦/春节/清明/劳动节/端午/中秋/国庆，农历与节气由 `lunar-javascript` 算）+ 自定义计时；可改可删，单个节日可隐藏 |
+| `/#/bookmarks` | 分组侧栏 + 列表；分组改名/解散、条目 CRUD、组内拖拽、点击计数 |
+| `/#/analytics` | 四图：完成量趋势、专注趋势、习惯本周达成、项目未完成分布 |
+
+路由用 `createHashRouter`：静态托管和直接双击 `index.html` 打开都不会 404。
 
 ## 数据与隐私
 
-- 业务数据存在 **IndexedDB**（Dexie），界面偏好存在 **localStorage**
+- 业务数据存在 **IndexedDB**（Dexie，库名 `zlong-workbench`），界面偏好存在 **localStorage**
 - 全程不发任何网络请求，无账号、无埋点
-- 删除是**软删除**，进回收站保留 7 天，超过保留期才清理
+- **12 张表**：`todos` `projects` `notes` `noteFolders` `habits` `habitLogs`
+  `pomodoros` `events` `bookmarks` `countdowns` `meta` `trash`，schema 已迁移到 `version(3)`
+- 删除是**软删除**：实体先落进 `trash` 表，7 天内可撤销，超过保留期在启动时清理
 - 顶栏 **数据** 菜单支持：
-  - **导出备份 JSON** —— 文件名带时间戳
-  - **从备份导入** —— zod 校验结构，可选「合并」或「覆盖」；覆盖前会自动先下载一份当前数据的快照
-  - **清空本地数据** —— 需二次确认
+  - **导出备份 JSON** —— 文件名 `workbench-YYYYMMDD-HHmm.json`，含 11 张表（回收站刻意不导出）
+  - **从备份导入** —— zod 校验结构，可选「合并」或「覆盖」；覆盖前会自动先下载一份当前数据的快照；
+    跨表引用（任务→项目、打卡→习惯、笔记→文件夹）失效的会在入库前自动修复，并提示修复条数
+  - **清空本地数据** —— 需二次确认，含回收站；清完会补写 `seededAt` 标记，示例数据不会长回来
 
 ## 架构
 
@@ -69,23 +104,33 @@ features/*  ──useLiveQuery──►  db/repositories/*  ──►  Dexie / I
 一条硬约束：**组件不允许直接 `import { db }`**，所有读写必须走 `db/repositories/`。
 这样统计口径统一、可单测，将来要接后端只需新增一套 `httpXxxRepo` 实现同一接口，UI 零改动。
 
+9 个仓储：`todoRepo` `projectRepo` `noteRepo` `noteFolderRepo` `habitRepo`
+`pomodoroRepo` `eventRepo` `bookmarkRepo` `countdownRepo`。
+
 ```
 src/
-├── app/          # 路由、zustand store（ui / pomodoro / toast）、导航表
-├── db/           # Dexie schema、10 张表、7 个 repository、示例数据
-├── features/     # dashboard（Bento 网格 + 7 张卡片）、各模块页
-├── components/   # ui 原语（Panel/Button/Modal/Dropdown/进度环…）、layout 外壳
-├── hooks/        # useLiveQuery 之外的通用 hooks
-├── lib/          # date / stats / backup / notify 等纯函数
-└── styles/       # Tailwind 4 入口 + 葡萄紫主题令牌
+├── app/          # router、navigation 导航表、store（ui / pomodoro / toast）
+├── db/           # schema（12 张表 + 3 个版本迁移）、seed 示例数据、9 个 repository
+├── features/     # dashboard（Bento 网格 + 8 张卡）、todos、notes、calendar、
+│                 # habits、pomodoro、countdown、bookmarks、analytics、shell
+├── components/   # ui 原语（Panel/Button/Modal/Dropdown/DatePicker/进度环…）、layout 外壳
+├── hooks/        # useNow / useTheme / useCounts / useClickOutside
+├── lib/          # date / stats / backup / countdown / heatmap / calendarGrid 等纯函数
+├── styles/       # Tailwind 4 入口 + 葡萄紫主题令牌
+└── types/        # lunar-javascript 的类型声明
 ```
+
+规模：129 个 `.ts`/`.tsx`（其中 69 个 `.tsx`），约 13,290 行。
 
 ## 技术栈
 
 Vite 8 · React 19 · TypeScript 5.9 · Tailwind CSS 4 · Dexie 4 · Zustand 5 ·
-react-router 7（hash 路由）· Recharts 3（按需加载）· @dnd-kit · zod 4 · lucide-react
+react-router 7（hash 路由）· Recharts 3（按需加载）· @dnd-kit · zod 4 ·
+lunar-javascript（农历/节气）· react-markdown · dayjs · lucide-react · Vitest 5
 
 > TypeScript 刻意锁在 5.9：`typescript-eslint@8` 的 peer 范围是 `>=4.8.4 <6.1.0`，TS 7 不在支持范围内。
+
+不引入组件库：只有十来个基础组件，自己写更轻、视觉更统一。
 
 ## 环境注意
 
@@ -95,26 +140,34 @@ react-router 7（hash 路由）· Recharts 3（按需加载）· @dnd-kit · zod
 store-dir=.pnpm-store
 cache=.npm-cache
 registry=https://registry.npmmirror.com/
+strict-peer-dependencies=false
 ```
 
 如果直接改回全局 store/cache 后 `pnpm install` 报 `EPERM`，多半是 `~/.npm` 下有 root 所有的
 残留文件（`sudo chown -R $(id -u):$(id -g) ~/.npm`），而不是项目本身的问题。这两个目录已加进 `.gitignore`。
 
-## 路线图
+**已知构建提示**：`pnpm build` 会报 chunk 超过 900 kB。实际产物是
+`index-*.js 1.58 MB（gzip 489 KB）` + `TrendCard-*.js 2.37 KB` + CSS 45 KB。
+趋势卡已用 `React.lazy` 单独切块（recharts 跟着走），但主包仍未手工分包——留待 P7。
+
+## 部署
+
+`.github/workflows/pages.yml`：push 到 `main` → Node 22 + pnpm 10 → `pnpm install --frozen-lockfile`
+→ `pnpm build` → 上传 `dist` 发布到 GitHub Pages。`vite.config.ts` 的 `base` 必须与仓库名一致。
+
+## 进度
 
 | 阶段 | 内容 | 状态 |
 | --- | --- | --- |
 | P0 | 脚手架、主题基座 | ✅ |
 | P1 | 数据层、仓储、导入导出、示例数据 | ✅ |
-| P2 | 主页面：外壳 + Bento 网格 + 8 张卡片 | ✅ |
+| P2 | 主页面：外壳 + Bento 网格 + 卡片 | ✅ |
 | P3 | 待办完整列表页（分组/筛选/子任务/回收站） | ✅ |
 | P4 | 笔记 Markdown 编辑预览、书签分组管理 | ✅ |
 | P5 | 习惯年度热力图、番茄统计 | ✅ |
-| P6 | 日历月/周视图、看板多维图表 | ✅ |
-| P7 | ⌘K 命令面板、全局快捷键、PWA 离线、单测 | 计划中 |
+| P6 | 日历月/周/年视图、看板多维图表 | ✅ |
+| P6.5 | 倒计时/正计时 + 法定节假日、生肖年视图 | ✅ |
+| P7 | ⌘K 命令面板、全局快捷键、PWA 离线、仓储层测试、主包分包 | 待做 |
 
-P3 待办完整页已落地（`/#/todos`：双栏、智能列表、项目、子任务、拖拽、批量、回收站）。
-P4 笔记 / 书签页已落地（`/#/notes?id=` 编辑预览 Tab；`/#/bookmarks?group=` 分组 CRUD 与拖拽排序）。
-P5 习惯 / 番茄已落地（`/#/habits` 年热力 + 列表；`/#/pomodoro` 统计与会话）。
-P6 日历 / 看板已落地（`/#/calendar` 月周视图 + 日程 CRUD；`/#/analytics` 四图）。
-其余打磨项见 P7；**核心操作已能在主页面与各模块页完成**，共用同一份数据。
+P7 目前一项都没开始：没有 `command` 目录，除表单与弹窗外没有全局快捷键，
+没有 manifest / service worker。**核心操作已能在主页面与各模块页完成**，共用同一份数据。
