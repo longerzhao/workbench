@@ -46,6 +46,7 @@ export function DatePicker({
     <Dropdown
       align="start"
       className={cn('w-[17.5rem] p-2', className)}
+      triggerClassName={triggerClassName}
       trigger={
         <button
           type="button"

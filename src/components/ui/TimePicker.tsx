@@ -30,6 +30,7 @@ export function TimePicker({ value, onChange, className }: TimePickerProps) {
   return (
     <Dropdown
       align="start"
+      triggerClassName="w-full"
       side="top"
       className="w-[11.5rem] p-2"
       trigger={

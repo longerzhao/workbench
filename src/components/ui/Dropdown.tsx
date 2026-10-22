@@ -11,7 +11,10 @@ export interface DropdownProps {
   align?: 'start' | 'end';
   /** 菜单相对触发器的方向；底部工具条请用 top，避免被裁切 */
   side?: 'top' | 'bottom';
+  /** 菜单宽度；作用于弹出菜单本身，不是触发器 */
   className?: string;
+  /** 包裹触发器的容器 class；网格布局里用它撑满可用宽度 */
+  triggerClassName?: string;
 }
 
 export function Dropdown({
@@ -20,6 +23,7 @@ export function Dropdown({
   align = 'end',
   side = 'bottom',
   className,
+  triggerClassName,
 }: DropdownProps) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
@@ -70,7 +74,7 @@ export function Dropdown({
   }, [open]);
 
   return (
-    <div className="relative" ref={ref}>
+    <div className={cn('relative', triggerClassName)} ref={ref}>
       <div
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}

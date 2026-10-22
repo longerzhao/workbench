@@ -167,7 +167,7 @@ function EventFormInner({
             </span>
             <Dropdown
               align="start"
-              className="w-full"
+              triggerClassName="w-full"
               trigger={
                 <button
                   type="button"

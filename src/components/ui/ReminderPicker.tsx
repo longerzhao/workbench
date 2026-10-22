@@ -2,21 +2,22 @@ import { useState } from 'react';
 import { Bell, BellOff } from 'lucide-react';
 import { toast } from '@/app/store/toast';
 import { requestNotificationPermission } from '@/lib/notify';
-import { fromLocalInput, toLocalInput } from '@/lib/reminderTime';
-import { todayKey, type DateKey } from '@/lib/date';
+import { dayjs, todayKey, toDateKey, type DateKey } from '@/lib/date';
 import { cn } from '@/lib/cn';
+import { DatePicker } from './DatePicker';
+import { TimePicker } from './TimePicker';
 
 export interface ReminderPickerProps {
   value: string | undefined;
   onChange: (iso: string | undefined) => void;
-  /** 到期日，用于「到期当天」快捷选项的默认落点 */
+  /** 到期日，用于快捷时刻的默认落点 */
   dueDate?: DateKey;
   className?: string;
 }
 
 /**
- * 提醒时间选择：优先用浏览器系统通知。
- * 没有授权时首次设置会弹权限请求，被拒了也照常存时间（下次打开仍会尝试提醒）。
+ * 提醒时间选择：日期走 DatePicker、时刻走 TimePicker，与全站保持同一套控件。
+ * 没有通知授权时首次设置会弹权限请求；被拒了也照常存时间。
  */
 export function ReminderPicker({
   value,
@@ -24,47 +25,66 @@ export function ReminderPicker({
   dueDate,
   className,
 }: ReminderPickerProps) {
-  const [text, setText] = useState(() => toLocalInput(value));
+  // 未设置时用「选中日期」暂存，确认后才落到 ISO
+  const current = value ? new Date(value) : undefined;
+  const [date, setDate] = useState<DateKey>(
+    current && !Number.isNaN(current.getTime()) ? toDateKey(current) : (dueDate ?? todayKey()),
+  );
+  const [time, setTime] = useState(() =>
+    current && !Number.isNaN(current.getTime())
+      ? dayjs(current).format('HH:mm')
+      : '09:00',
+  );
 
-  const commit = (next: string) => {
-    setText(next);
-    onChange(fromLocalInput(next));
-  };
-
-  const quick = (time: string) => {
-    commit(`${dueDate ?? todayKey()}T${time}`);
-  };
-
-  const clear = async () => {
-    commit('');
-    onChange(undefined);
+  const emit = (nextDate: DateKey, nextTime: string) => {
+    const iso = new Date(`${nextDate}T${nextTime}`).toISOString();
+    onChange(iso);
   };
 
   const ensurePermission = async () => {
     if (typeof Notification === 'undefined') return;
     if (Notification.permission === 'default') {
       const ok = await requestNotificationPermission();
-      if (!ok) {
-        toast('未获得通知权限，提醒时间仍会保存');
-      }
+      if (!ok) toast('未获得通知权限，提醒时间仍会保存');
     }
+  };
+
+  const clear = () => onChange(undefined);
+
+  const quick = (quickTime: string) => {
+    setTime(quickTime);
+    const target = value ? toDateKey(new Date(value)) : (dueDate ?? todayKey());
+    setDate(target);
+    emit(target, quickTime);
+    void ensurePermission();
   };
 
   return (
     <div className={cn('space-y-1.5', className)}>
       <div className="flex items-center gap-1.5">
-        <input
-          type="datetime-local"
-          value={text}
-          onChange={(e) => commit(e.target.value)}
-          onFocus={() => void ensurePermission()}
-          aria-label="提醒时间"
-          className="h-8 min-w-0 flex-1 rounded-[10px] border border-line bg-surface px-2 text-[0.8125rem] tabular-nums text-ink outline-none transition-colors focus:border-line-strong"
+        <DatePicker
+          value={date}
+          onChange={(next) => {
+            if (!next) return;
+            setDate(next);
+            emit(next, time);
+          }}
+          format="YYYY/MM/DD"
+          triggerClassName="h-8 flex-1"
         />
+        <TimePicker
+          value={time}
+          onChange={(next) => {
+            setTime(next);
+            emit(date, next);
+          }}
+          className="h-8 shrink-0"
+        />
+
         {value ? (
           <button
             type="button"
-            onClick={() => void clear()}
+            onClick={clear}
             aria-label="清除提醒"
             title="清除提醒"
             className="grid size-8 shrink-0 place-items-center rounded-[10px] text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
@@ -85,16 +105,18 @@ export function ReminderPicker({
       </div>
 
       <div className="flex flex-wrap gap-1.5">
-        {[
-          ['09:00', '上午 9 点'],
-          ['12:00', '中午 12 点'],
-          ['18:00', '下午 6 点'],
-          ['21:00', '晚上 9 点'],
-        ].map(([time, label]) => (
+        {(
+          [
+            ['09:00', '上午 9 点'],
+            ['12:00', '中午 12 点'],
+            ['18:00', '下午 6 点'],
+            ['21:00', '晚上 9 点'],
+          ] as const
+        ).map(([quickTime, label]) => (
           <button
-            key={time}
+            key={quickTime}
             type="button"
-            onClick={() => quick(time!)}
+            onClick={() => quick(quickTime)}
             className="chip bg-surface-2 text-ink-muted transition-colors hover:bg-primary-soft hover:text-primary-text"
           >
             {label}
