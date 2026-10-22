@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
-import { Flame, PanelLeftClose, PanelLeftOpen, Sparkles, Timer } from 'lucide-react';
+import { Flame, PanelLeftClose, PanelLeftOpen, Search, Sparkles, Timer } from 'lucide-react';
 import { NAV_ITEMS } from '@/app/navigation';
+import { useCommandStore } from '@/app/store/command';
 import { useUIStore } from '@/app/store/ui';
 import { useCounts } from '@/hooks/useCounts';
 import { useOverview } from '@/features/dashboard/useOverview';
@@ -10,10 +11,27 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { formatDuration } from '@/lib/date';
 import { cn } from '@/lib/cn';
 
+/**
+ * ⌘ 与 K 的字形高度差约 25%（实测 5.85px vs 7.29px，同字号下），
+ * 并排会显得忽大忽小。按墨迹高度反推字号（13.5px ≈ 7.18px 墨迹），
+ * 再把 ⌘ 下移 1.5px 补偿它悬在基线上方的部分。
+ */
+function ShortcutHint() {
+  return (
+    <kbd className="ml-auto flex items-baseline gap-px rounded border border-line bg-surface px-1 py-0.5 leading-none">
+      <span aria-hidden className="relative top-[1.5px] text-[13.5px]">
+        ⌘
+      </span>
+      <span className="text-[10px]">K</span>
+    </kbd>
+  );
+}
+
 export function Sidebar() {
   const collapsed = useUIStore((state) => state.sidebarCollapsed);
   const toggleSidebar = useUIStore((state) => state.toggleSidebar);
   const avatarDataUrl = useUIStore((state) => state.avatarDataUrl);
+  const openPalette = useCommandStore((state) => state.openPalette);
   const counts = useCounts();
   const overview = useOverview();
 
@@ -41,6 +59,28 @@ export function Sidebar() {
             <p className="truncate text-[0.6875rem] leading-tight text-ink-subtle">本地优先</p>
           </div>
         ) : null}
+      </div>
+
+      {/* 搜索入口：常驻「总览」上方，⌘K 快捷键与此等效 */}
+      <div className="shrink-0 px-2.5 pt-2">
+        <button
+          type="button"
+          onClick={() => openPalette('search')}
+          aria-label="搜索（⌘K）"
+          title={collapsed ? '搜索（⌘K）' : undefined}
+          className={cn(
+            'flex h-9 w-full items-center gap-2.5 rounded-[10px] border border-line bg-surface-2 px-2.5 text-[0.8125rem] text-ink-subtle transition-colors hover:border-line-strong hover:text-ink',
+            collapsed && 'justify-center border-transparent bg-transparent px-0 hover:bg-surface-2',
+          )}
+        >
+          <Search className="size-4 shrink-0" />
+          {!collapsed ? (
+            <>
+              <span>搜索</span>
+              <ShortcutHint />
+            </>
+          ) : null}
+        </button>
       </div>
 
       {/* 模块导航 */}
