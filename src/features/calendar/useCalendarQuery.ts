@@ -61,10 +61,11 @@ export function useCalendarEvents(view: CalendarView, date: DateKey) {
     };
   }, [view, date]);
 
-  const events = useLiveQuery(
+  // 返回展开后的"发生"列表：跨天事件会在区间内多天出现，重复事件按规则落地
+  const occurrences = useLiveQuery(
     () => eventRepo.listBetween(range.from, range.to),
     [range.from, range.to],
   );
 
-  return { events, range };
+  return { occurrences, range };
 }

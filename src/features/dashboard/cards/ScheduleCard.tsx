@@ -19,7 +19,7 @@ function nextSlot(): string {
 }
 
 export function ScheduleCard() {
-  const events = useLiveQuery(() => eventRepo.listToday(), []);
+  const occurrences = useLiveQuery(() => eventRepo.listToday(), []);
   const [title, setTitle] = useState('');
   const [start, setStart] = useState(() => nextSlot());
   const [submitting, setSubmitting] = useState(false);
@@ -52,7 +52,7 @@ export function ScheduleCard() {
     <Panel
       title="今日日程"
       icon={<CalendarDays />}
-      badge={events === undefined ? undefined : events.length}
+      badge={occurrences === undefined ? undefined : occurrences.length}
       action={
         <Link
           to={`/calendar?view=week&date=${todayKey()}`}
@@ -66,16 +66,20 @@ export function ScheduleCard() {
       bodyClassName="flex flex-col"
     >
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2.5">
-        {events === undefined ? (
+        {occurrences === undefined ? (
           <SkeletonLines lines={3} />
-        ) : events.length === 0 ? (
+        ) : occurrences.length === 0 ? (
           <Empty icon={<CalendarDays />} title="今天没有安排" hint="在下面添加一条日程。" />
         ) : (
           <ol className="space-y-0.5">
-            {events.map((event) => {
+            {occurrences.map((occ) => {
+              const event = occ.event;
               const passed = !event.allDay && event.end < nowTime;
               return (
-                <li key={event.id} className="group flex items-start gap-2.5 rounded-lg py-1.5">
+                <li
+                  key={`${event.id}:${occ.date}`}
+                  className="group flex items-start gap-2.5 rounded-lg py-1.5"
+                >
                   <span className="w-10 shrink-0 pt-px text-[0.6875rem] font-medium tabular-nums text-ink-muted">
                     {event.allDay ? '全天' : event.start}
                   </span>

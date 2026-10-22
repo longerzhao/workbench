@@ -168,3 +168,30 @@ describe('子任务', () => {
     expect(row?.subtasks[0]?.done).toBe(true);
   });
 });
+
+describe('todoRepo.listWithReminder', () => {
+  it('只返回设了提醒且未完成的待办', async () => {
+    const withRemind = await todoRepo.create({ title: '要提醒' });
+    await todoRepo.update(withRemind.id, {
+      remindAt: new Date(Date.now() + 3_600_000).toISOString(),
+    });
+    const plain = await todoRepo.create({ title: '不提醒' });
+    const done = await todoRepo.create({ title: '已完成' });
+    await todoRepo.update(done.id, { remindAt: new Date(Date.now() + 3_600_000).toISOString() });
+    await todoRepo.toggle(done.id);
+
+    const ids = (await todoRepo.listWithReminder()).map((t) => t.id);
+    expect(ids).toContain(withRemind.id);
+    expect(ids).not.toContain(plain.id);
+    expect(ids).not.toContain(done.id);
+  });
+
+  it('clearTodaysReminders 之外的清除：remindAt 置 undefined 后不再返回', async () => {
+    const todo = await todoRepo.create({ title: '临时提醒' });
+    await todoRepo.update(todo.id, { remindAt: new Date(Date.now() + 1000).toISOString() });
+    expect((await todoRepo.listWithReminder()).map((t) => t.id)).toContain(todo.id);
+
+    await todoRepo.update(todo.id, { remindAt: undefined });
+    expect((await todoRepo.listWithReminder()).map((t) => t.id)).not.toContain(todo.id);
+  });
+});

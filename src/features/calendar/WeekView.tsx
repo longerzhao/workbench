@@ -6,6 +6,7 @@ import {
   eventBlockStyle,
   weekDates,
 } from '@/lib/calendarGrid';
+import { compareOccurrences, type EventOccurrence } from '@/lib/eventOccurrence';
 import { dayjs, todayKey, weekdayShort, type DateKey } from '@/lib/date';
 import { cn } from '@/lib/cn';
 
@@ -13,22 +14,23 @@ const HOUR_PX = 48;
 
 export interface WeekViewProps {
   anchor: DateKey;
-  events: CalendarEvent[];
+  occurrences: EventOccurrence[];
   onSelectSlot: (date: DateKey, start: string) => void;
   onSelectEvent: (event: CalendarEvent) => void;
 }
 
-export function WeekView({ anchor, events, onSelectSlot, onSelectEvent }: WeekViewProps) {
+export function WeekView({ anchor, occurrences, onSelectSlot, onSelectEvent }: WeekViewProps) {
   const days = weekDates(anchor);
   const today = todayKey();
   const bandHeight = (WEEK_HOUR_END - WEEK_HOUR_START) * HOUR_PX;
 
-  const byDate = new Map<string, CalendarEvent[]>();
-  for (const ev of events) {
-    const list = byDate.get(ev.date) ?? [];
-    list.push(ev);
-    byDate.set(ev.date, list);
+  const byDate = new Map<string, EventOccurrence[]>();
+  for (const occ of occurrences) {
+    const list = byDate.get(occ.date) ?? [];
+    list.push(occ);
+    byDate.set(occ.date, list);
   }
+  for (const list of byDate.values()) list.sort(compareOccurrences);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-auto p-3">
@@ -36,18 +38,18 @@ export function WeekView({ anchor, events, onSelectSlot, onSelectEvent }: WeekVi
       <div className="mb-2 grid grid-cols-[3rem_repeat(7,minmax(0,1fr))] gap-1 border-b border-line pb-2">
         <span className="text-[0.625rem] text-ink-subtle">全天</span>
         {days.map((date) => {
-          const allDay = (byDate.get(date) ?? []).filter((e) => e.allDay);
+          const allDay = (byDate.get(date) ?? []).filter((o) => o.event.allDay);
           return (
             <div key={date} className="min-h-[1.5rem] space-y-0.5">
-              {allDay.map((ev) => (
+              {allDay.map((occ) => (
                 <button
-                  key={ev.id}
+                  key={`${occ.event.id}:${occ.date}`}
                   type="button"
-                  onClick={() => onSelectEvent(ev)}
+                  onClick={() => onSelectEvent(occ.event)}
                   className="block w-full truncate rounded px-1 py-0.5 text-left text-[0.625rem] text-white"
-                  style={{ backgroundColor: ev.color }}
+                  style={{ backgroundColor: occ.event.color }}
                 >
-                  {ev.title}
+                  {occ.event.title}
                 </button>
               ))}
             </div>
@@ -89,7 +91,7 @@ export function WeekView({ anchor, events, onSelectSlot, onSelectEvent }: WeekVi
         </div>
 
         {days.map((date) => {
-          const timed = (byDate.get(date) ?? []).filter((e) => !e.allDay);
+          const timed = (byDate.get(date) ?? []).filter((o) => !o.event.allDay);
           return (
             <div
               key={date}
@@ -113,12 +115,13 @@ export function WeekView({ anchor, events, onSelectSlot, onSelectEvent }: WeekVi
                   style={{ top: (h - WEEK_HOUR_START) * HOUR_PX }}
                 />
               ))}
-              {timed.map((ev, index) => {
+              {timed.map((occ, index) => {
+                const ev = occ.event;
                 const style = eventBlockStyle(ev.start, ev.end);
                 if (!style) return null;
                 return (
                   <button
-                    key={ev.id}
+                    key={`${ev.id}:${occ.date}`}
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();

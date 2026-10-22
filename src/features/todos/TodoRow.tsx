@@ -7,7 +7,7 @@ import {
 } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ChevronDown, GripVertical, Plus, Trash, X } from 'lucide-react';
+import { ChevronDown, GripVertical, Plus, Trash, X, Bell } from 'lucide-react';
 import type { Priority, Project, Todo } from '@/db/schema';
 import { todoRepo } from '@/db/repositories';
 import { toast } from '@/app/store/toast';
@@ -15,7 +15,8 @@ import { Checkbox } from '@/components/ui/Checkbox';
 import { IconButton } from '@/components/ui/Button';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
-import { humanDate, isOverdue } from '@/lib/date';
+import { ReminderPicker } from '@/components/ui/ReminderPicker';
+import { humanDate, isOverdue, toDateKey, todayKey } from '@/lib/date';
 import { cn } from '@/lib/cn';
 
 const PRIORITY_DOT: Record<Priority, string> = {
@@ -31,6 +32,16 @@ const PRIORITY_OPTS: { value: Priority; label: string }[] = [
   { value: 2, label: '中' },
   { value: 3, label: '高' },
 ];
+
+/** 提醒时刻 → 「今天 09:00」/「10月23日 09:00」 */
+function humanRemind(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const today = todayKey();
+  const day = toDateKey(d);
+  return day === today ? `今天 ${time}` : `${humanDate(day)} ${time}`;
+}
 
 export interface TodoRowProps {
   todo: Todo;
@@ -150,6 +161,12 @@ export function TodoRow({
             ) : (
               <span>未排期</span>
             )}
+            {todo.remindAt && !todo.done ? (
+              <span className="flex items-center gap-0.5" title={`提醒：${humanRemind(todo.remindAt)}`}>
+                <Bell className="size-3" />
+                {humanRemind(todo.remindAt)}
+              </span>
+            ) : null}
             {subTotal > 0 ? (
               <span>
                 子任务 {doneSubs}/{subTotal}
@@ -397,6 +414,16 @@ function TodoEditor({
               </>
             )}
           </Dropdown>
+        </MetaField>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <MetaField label="提醒">
+          <ReminderPicker
+            value={todo.remindAt}
+            dueDate={todo.dueDate}
+            onChange={(remindAt) => void todoRepo.update(todo.id, { remindAt })}
+          />
         </MetaField>
       </div>
 

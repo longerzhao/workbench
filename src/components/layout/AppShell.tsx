@@ -4,6 +4,7 @@ import { CommandPalette } from '@/components/command/CommandPalette';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useCommandStore } from '@/app/store/command';
 import { useGlobalHotkeys } from '@/hooks/useHotkeys';
+import { useTodoReminders } from '@/hooks/useTodoReminders';
 import { MobileNav } from './MobileNav';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
@@ -32,6 +33,7 @@ function RouteFallback() {
  */
 export function AppShell() {
   useGlobalHotkeys();
+  useTodoReminders();
   const paletteOpen = useCommandStore((state) => state.open);
 
   return (

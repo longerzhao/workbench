@@ -20,6 +20,8 @@ export interface Todo {
   done: boolean;
   priority: Priority;
   dueDate?: DateKey;
+  /** 提醒时刻（ISO）；到期且未完成时弹系统通知 */
+  remindAt?: ISODateTime;
   projectId?: string;
   tags: string[];
   subtasks: SubTask[];
@@ -112,15 +114,27 @@ export interface Pomodoro {
   completed: boolean;
 }
 
+/**
+ * 重复规则。简化版 RRULE：
+ * - daily 每天一次、weekly 同一 ISO 周几、monthly 同一"几号"（无该号的月份跳过）
+ * - 重复事件的 endDate 表示重复截止（含当天）；不重复时表示跨天结束日（含当天）
+ */
+export type EventRepeat = 'none' | 'daily' | 'weekly' | 'monthly';
+
 export interface CalendarEvent {
   id: string;
   title: string;
+  /** 起始日（重复事件的第一次发生日） */
   date: DateKey;
+  /** 结束日（含当天）。单日事件省略，等价于 date */
+  endDate?: DateKey;
   /** HH:mm */
   start: string;
   /** HH:mm */
   end: string;
   allDay: boolean;
+  /** 重复规则，缺省视为 none */
+  repeat?: EventRepeat;
   color: string;
   note?: string;
   createdAt: ISODateTime;
@@ -212,6 +226,20 @@ export class WorkbenchDB extends Dexie {
     this.version(3).stores({
       countdowns: '&id, mode, date, order',
     });
+
+    // v4：todos 增加提醒索引；events 增加跨天/重复字段（字段不建索引，回填默认值）
+    this.version(4)
+      .stores({
+        todos: '&id, dueDate, projectId, order, createdAt, completedAt, remindAt',
+      })
+      .upgrade(async (tx) => {
+        await tx
+          .table('events')
+          .toCollection()
+          .modify((event: { repeat?: string }) => {
+            if (event.repeat === undefined) event.repeat = 'none';
+          });
+      });
   }
 }
 

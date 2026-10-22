@@ -1,5 +1,6 @@
 import type { CalendarEvent } from '@/db/schema';
 import { buildMonthCells } from '@/lib/calendarGrid';
+import { compareOccurrences, type EventOccurrence } from '@/lib/eventOccurrence';
 import { dayjs, todayKey, type DateKey } from '@/lib/date';
 import { cn } from '@/lib/cn';
 
@@ -8,23 +9,24 @@ const MAX_VISIBLE = 2;
 
 export interface MonthViewProps {
   anchor: DateKey;
-  events: CalendarEvent[];
+  occurrences: EventOccurrence[];
   onSelectDay: (date: DateKey) => void;
   onSelectEvent: (event: CalendarEvent) => void;
 }
 
-export function MonthView({ anchor, events, onSelectDay, onSelectEvent }: MonthViewProps) {
+export function MonthView({ anchor, occurrences, onSelectDay, onSelectEvent }: MonthViewProps) {
   const year = dayjs(anchor).year();
   const month = dayjs(anchor).month();
   const weeks = buildMonthCells(year, month);
   const today = todayKey();
 
-  const byDate = new Map<string, CalendarEvent[]>();
-  for (const ev of events) {
-    const list = byDate.get(ev.date) ?? [];
-    list.push(ev);
-    byDate.set(ev.date, list);
+  const byDate = new Map<string, EventOccurrence[]>();
+  for (const occ of occurrences) {
+    const list = byDate.get(occ.date) ?? [];
+    list.push(occ);
+    byDate.set(occ.date, list);
   }
+  for (const list of byDate.values()) list.sort(compareOccurrences);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 p-3 md:p-4">
@@ -45,9 +47,9 @@ export function MonthView({ anchor, events, onSelectDay, onSelectEvent }: MonthV
         {weeks.map((week) => (
           <div key={week[0]?.date} className="grid min-h-0 flex-1 grid-cols-7 gap-px">
             {week.map((cell) => {
-              const list = byDate.get(cell.date) ?? [];
-              const visible = list.slice(0, MAX_VISIBLE);
-              const more = list.length - visible.length;
+              const dayOccurrences = byDate.get(cell.date) ?? [];
+              const visible = dayOccurrences.slice(0, MAX_VISIBLE);
+              const more = dayOccurrences.length - visible.length;
               const isToday = cell.date === today;
 
               return (
@@ -72,29 +74,32 @@ export function MonthView({ anchor, events, onSelectDay, onSelectEvent }: MonthV
                   </span>
 
                   <div className="min-h-0 flex-1 space-y-0.5 overflow-hidden">
-                    {visible.map((ev) => (
-                      <span
-                        key={ev.id}
-                        role="link"
-                        tabIndex={0}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSelectEvent(ev);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
+                    {visible.map((occ) => {
+                      const ev = occ.event;
+                      return (
+                        <span
+                          key={`${ev.id}:${occ.date}`}
+                          role="link"
+                          tabIndex={0}
+                          onClick={(e) => {
                             e.stopPropagation();
                             onSelectEvent(ev);
-                          }
-                        }}
-                        className="block truncate rounded-[5px] px-1 py-0.5 text-[0.625rem] leading-tight text-white"
-                        style={{ backgroundColor: ev.color }}
-                        title={ev.allDay ? ev.title : `${ev.start} ${ev.title}`}
-                      >
-                        {ev.allDay ? ev.title : `${ev.start} ${ev.title}`}
-                      </span>
-                    ))}
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              onSelectEvent(ev);
+                            }
+                          }}
+                          className="block truncate rounded-[5px] px-1 py-0.5 text-[0.625rem] leading-tight text-white"
+                          style={{ backgroundColor: ev.color }}
+                          title={ev.allDay ? ev.title : `${ev.start} ${ev.title}`}
+                        >
+                          {ev.allDay ? ev.title : `${ev.start} ${ev.title}`}
+                        </span>
+                      );
+                    })}
                     {more > 0 ? (
                       <span className="block px-1 text-[0.625rem] text-ink-subtle">
                         另有 {more} 项

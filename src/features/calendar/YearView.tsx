@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import type { CalendarEvent } from '@/db/schema';
 import { buildMonthCells } from '@/lib/calendarGrid';
+import type { EventOccurrence } from '@/lib/eventOccurrence';
 import { dayjs, todayKey, type DateKey } from '@/lib/date';
 import { cn } from '@/lib/cn';
 import { zodiacLabelForYear, zodiacSrcForYear } from '@/lib/zodiac';
@@ -9,12 +9,12 @@ const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日'];
 
 export interface YearViewProps {
   anchor: DateKey;
-  events: CalendarEvent[];
+  occurrences: EventOccurrence[];
   onSelectMonth: (date: DateKey) => void;
   onSelectDay: (date: DateKey) => void;
 }
 
-export function YearView({ anchor, events, onSelectMonth, onSelectDay }: YearViewProps) {
+export function YearView({ anchor, occurrences, onSelectMonth, onSelectDay }: YearViewProps) {
   const year = dayjs(anchor).year();
   const today = todayKey();
   const zodiacSrc = zodiacSrcForYear(year);
@@ -22,9 +22,9 @@ export function YearView({ anchor, events, onSelectMonth, onSelectDay }: YearVie
 
   const eventDays = useMemo(() => {
     const set = new Set<string>();
-    for (const ev of events) set.add(ev.date);
+    for (const occ of occurrences) set.add(occ.date);
     return set;
-  }, [events]);
+  }, [occurrences]);
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden p-2 md:p-3">

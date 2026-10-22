@@ -72,12 +72,13 @@ export function notify(
   body: string,
   sound = true,
   durationSec = 1,
+  tag = 'workbench-pomodoro',
 ): void {
   if (sound) playChime(durationSec);
 
   if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
     try {
-      new Notification(title, { body, tag: 'workbench-pomodoro' });
+      new Notification(title, { body, tag });
     } catch {
       // 部分浏览器在非安全上下文下会抛错，忽略即可
     }

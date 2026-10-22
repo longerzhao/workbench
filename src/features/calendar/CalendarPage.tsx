@@ -20,7 +20,7 @@ const VIEW_TABS: { id: CalendarView; label: string }[] = [
 
 export function CalendarPage() {
   const { view, date, setParams } = useCalendarSearch();
-  const { events } = useCalendarEvents(view, date);
+  const { occurrences } = useCalendarEvents(view, date);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<CalendarEvent | null>(null);
@@ -92,28 +92,28 @@ export function CalendarPage() {
         </Button>
       </header>
 
-      {events === undefined ? (
+      {occurrences === undefined ? (
         <div className="p-4">
           <SkeletonLines lines={8} />
         </div>
       ) : view === 'year' ? (
         <YearView
           anchor={date}
-          events={events}
+          occurrences={occurrences}
           onSelectMonth={(d) => setParams({ view: 'month', date: d })}
           onSelectDay={(d) => openCreate(d)}
         />
       ) : view === 'month' ? (
         <MonthView
           anchor={date}
-          events={events}
+          occurrences={occurrences}
           onSelectDay={(d) => openCreate(d)}
           onSelectEvent={openEdit}
         />
       ) : (
         <WeekView
           anchor={date}
-          events={events}
+          occurrences={occurrences}
           onSelectSlot={(d, start) => openCreate(d, start)}
           onSelectEvent={openEdit}
         />

@@ -64,6 +64,14 @@ export const todoRepo = {
     return rows.filter((t) => !t.done).sort(byUrgency);
   },
 
+  /** 设了提醒且未完成的待办，提醒调度器用 */
+  async listWithReminder(): Promise<Todo[]> {
+    // 用索引上界取候选：提醒时间都是 ISO 串，全表量级很小，
+    // 明确避开 where().notEqual() —— 索引上的 notEqual 会被 Dexie 退化成全表游标。
+    const rows = await db.todos.where('remindAt').belowOrEqual('9999').toArray();
+    return rows.filter((t) => !t.done && Boolean(t.remindAt));
+  },
+
   /** 待办页统一查询入口（不含回收站） */
   async listByFilter(filter: TodoListFilter): Promise<Todo[]> {
     const today = todayKey();
@@ -99,7 +107,8 @@ export const todoRepo = {
     const clearProject = 'projectId' in patch && patch.projectId === undefined;
     const clearNote = 'note' in patch && patch.note === undefined;
     const clearCompleted = 'completedAt' in patch && patch.completedAt === undefined;
-    if (clearDue || clearProject || clearNote || clearCompleted) {
+    const clearRemind = 'remindAt' in patch && patch.remindAt === undefined;
+    if (clearDue || clearProject || clearNote || clearCompleted || clearRemind) {
       await db.todos
         .where('id')
         .equals(id)
@@ -109,6 +118,7 @@ export const todoRepo = {
           if (clearProject) delete row.projectId;
           if (clearNote) delete row.note;
           if (clearCompleted) delete row.completedAt;
+          if (clearRemind) delete row.remindAt;
         });
       return;
     }
