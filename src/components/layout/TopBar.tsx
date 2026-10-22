@@ -5,6 +5,7 @@ import { useNow } from '@/hooks/useNow';
 import { IconButton } from '@/components/ui/Button';
 import { dayjs, formatFullDateWithLunar, greeting, todayKey } from '@/lib/date';
 import { DataMenu } from './DataMenu';
+import { MessageBell } from './MessageBell';
 import { SettingsModal } from './SettingsModal';
 import { ThemeButton } from './ThemeButton';
 
@@ -28,6 +29,10 @@ export function TopBar() {
       </div>
 
       <div className="ml-auto flex shrink-0 items-center gap-1">
+        {/* 窄屏时侧栏整体隐藏，消息入口在这里补位 */}
+        <div className="w-9 lg:hidden">
+          <MessageBell />
+        </div>
         <ThemeButton />
         <DataMenu />
         <IconButton label="设置" onClick={() => setSettingsOpen(true)}>

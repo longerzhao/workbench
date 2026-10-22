@@ -10,6 +10,7 @@ import { IconButton } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { formatDuration } from '@/lib/date';
 import { cn } from '@/lib/cn';
+import { MessageBell } from './MessageBell';
 
 /**
  * ⌘ 与 K 的字形高度差约 25%（实测 5.85px vs 7.29px，同字号下），
@@ -43,7 +44,12 @@ export function Sidebar() {
       )}
     >
       {/* 品牌区 */}
-      <div className={cn('flex h-14 items-center gap-2.5 px-4', collapsed && 'justify-center px-0')}>
+      <div
+        className={cn(
+          'flex h-14 items-center gap-2.5',
+          collapsed ? 'justify-center px-0' : 'px-4',
+        )}
+      >
         <span className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-[10px] bg-primary text-primary-fg shadow-[0_4px_12px_-4px_var(--ring)]">
           {avatarDataUrl ? (
             <img src={avatarDataUrl} alt="" className="size-full object-cover" />
@@ -52,17 +58,29 @@ export function Sidebar() {
           )}
         </span>
         {!collapsed ? (
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="truncate text-[0.8125rem] font-semibold leading-tight text-ink">
               个人工作台
             </p>
             <p className="truncate text-[0.6875rem] leading-tight text-ink-subtle">本地优先</p>
           </div>
         ) : null}
+        {/* 消息中心：展开态在品牌区右侧，收起态收进下方导航区 */}
+        {!collapsed ? (
+          <div className="w-9 shrink-0">
+            <MessageBell />
+          </div>
+        ) : null}
       </div>
 
       {/* 搜索入口：常驻「总览」上方，⌘K 快捷键与此等效 */}
       <div className="shrink-0 px-2.5 pt-2">
+        {/* 收起态没有品牌区右侧的位置，消息入口落到这里，保持在导航之上 */}
+        {collapsed ? (
+          <div className="mb-1.5">
+            <MessageBell />
+          </div>
+        ) : null}
         <button
           type="button"
           onClick={() => openPalette('search')}
