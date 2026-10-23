@@ -3,6 +3,7 @@ import { Calendar, Flag, FolderInput, Trash, X } from 'lucide-react';
 import type { Priority, Project } from '@/db/schema';
 import { todoRepo } from '@/db/repositories';
 import { toast } from '@/app/store/toast';
+import { todayKey } from '@/lib/date';
 import { Button } from '@/components/ui/Button';
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 
@@ -64,8 +65,11 @@ export function TodoBatchBar({ selectedIds, projects, onClear }: TodoBatchBarPro
               <DropdownItem
                 onClick={() => {
                   close();
-                  const today = new Date().toISOString().slice(0, 10);
-                  void run(() => todoRepo.updateMany(selectedIds, { dueDate: today }), '已设为今天');
+                  // 本地时区的今天：toISOString 是 UTC，东八区 0-8 点会取到昨天
+                  void run(
+                    () => todoRepo.updateMany(selectedIds, { dueDate: todayKey() }),
+                    '已设为今天',
+                  );
                 }}
               >
                 今天
