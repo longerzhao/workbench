@@ -17,11 +17,37 @@ import {
 import { todayKey, type DateKey } from '@/lib/date';
 
 /**
- * 沙量刻度（纯装饰）：剩余天数达到此值即上球满沙。
- * 取 180 天是为了盖住最长的常见倒计时——法定假期最远也就春节那一个，
- * 超出的部分一律显示"沙还没怎么动"，读起来才符合直觉。
+ * 沙量刻度（纯装饰）。
+ *
+ * 倒计时的跨度太大——"还剩 3 小时"到"还有 105 天"差 280 倍，任何单一刻度都会
+ * 让其中一端失去区分度。所以用分段插值：
+ *   0–24 小时   → 0%–35%   （今天之内，沙明显见底）
+ *   1–7 天      → 35%–65%  （本周之内）
+ *   7–30 天     → 65%–85%  （本月之内）
+ *   30–180 天   → 85%–100% （更远的基本满沙，超过 180 天一律满）
  */
-const SAND_FULL_SCALE_DAYS = 180;
+const SAND_SCALE: readonly { hours: number; ratio: number }[] = [
+  { hours: 0, ratio: 0 },
+  { hours: 24, ratio: 0.35 },
+  { hours: 24 * 7, ratio: 0.65 },
+  { hours: 24 * 30, ratio: 0.85 },
+  { hours: 24 * 180, ratio: 1 },
+];
+
+function sandFraction(days: number, hours: number): number {
+  const totalHours = Math.max(0, days * 24 + hours);
+  const last = SAND_SCALE[SAND_SCALE.length - 1]!;
+  if (totalHours >= last.hours) return 1;
+
+  for (let i = 1; i < SAND_SCALE.length; i += 1) {
+    const upper = SAND_SCALE[i]!;
+    if (totalHours > upper.hours) continue;
+    const lower = SAND_SCALE[i - 1]!;
+    const t = (totalHours - lower.hours) / (upper.hours - lower.hours);
+    return lower.ratio + (upper.ratio - lower.ratio) * t;
+  }
+  return 1;
+}
 
 interface Candidate {
   title: string;
@@ -73,10 +99,8 @@ export function CountdownCard() {
   const primary = upcoming?.[0];
   const secondary = upcoming?.[1];
 
-  // 上球剩余沙：越临近空得越快
-  const sand = primary
-    ? Math.max(0, Math.min(1, 1 - primary.parts.days / SAND_FULL_SCALE_DAYS))
-    : 0;
+  // 上球剩余沙：越临近空得越快，粒度到小时
+  const sand = primary ? sandFraction(primary.parts.days, primary.parts.hours) : 0;
 
   return (
     <Panel
