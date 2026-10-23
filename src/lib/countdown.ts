@@ -1,7 +1,7 @@
 import { Lunar } from 'lunar-javascript';
 import dayjs from 'dayjs';
 import type { CountdownRepeat } from '@/db/schema';
-import { toDateKey, type DateKey } from '@/lib/date';
+import { toDateKey, weekdayShort, type DateKey } from '@/lib/date';
 
 export const HOLIDAYS = [
   { id: 'yuandan', title: '元旦', color: '#dc2626', icon: 'PartyPopper' },
@@ -78,6 +78,17 @@ export const REPEAT_LABELS: Record<CountdownRepeat, string> = {
   monthly: '每月',
   weekly: '每周',
 };
+
+/**
+ * 周期的口语化描述。锚点是星期几就说"每周<周几>"，
+ * 让"每周"从抽象规则变成可预期的具体日子。
+ */
+export function repeatSummary(repeat: CountdownRepeat, anchor: DateKey): string {
+  if (repeat === 'weekly') {
+    return `每周${weekdayShort(anchor)}`;
+  }
+  return REPEAT_LABELS[repeat];
+}
 
 /**
  * 周期倒计时的下一次发生日（含 from 当天）。

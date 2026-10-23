@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { counterDuration, holidayDate, nextHolidayDate, nextRepeatDate } from './countdown';
+import {
+  counterDuration,
+  holidayDate,
+  nextHolidayDate,
+  nextRepeatDate,
+  repeatSummary,
+} from './countdown';
 
 describe('holidayDate', () => {
   it('resolves known 2026 dates', () => {
@@ -72,5 +78,21 @@ describe('nextRepeatDate', () => {
   it('weekly 取同一 ISO 周几，含 from 当天', () => {
     expect(nextRepeatDate('weekly', '2020-01-02', FROM)).toBe('2026-10-22');
     expect(nextRepeatDate('weekly', '2020-01-03', FROM)).toBe('2026-10-23');
+  });
+});
+
+
+describe('repeatSummary', () => {
+  it('每周带上锚点的周几', () => {
+    expect(repeatSummary('weekly', '2026-10-22')).toBe('每周四'); // 2026-10-22 是周四
+    expect(repeatSummary('weekly', '2026-10-23')).toBe('每周五');
+    expect(repeatSummary('weekly', '2026-10-19')).toBe('每周一');
+    expect(repeatSummary('weekly', '2026-10-25')).toBe('每周日');
+  });
+
+  it('其他周期用标签原文，不带周几', () => {
+    expect(repeatSummary('yearly', '2026-10-22')).toBe('每年');
+    expect(repeatSummary('monthly', '2026-10-22')).toBe('每月');
+    expect(repeatSummary('none', '2026-10-22')).toBe('不重复');
   });
 });

@@ -14,6 +14,7 @@ import {
   HOLIDAYS,
   REPEAT_LABELS,
   counterDuration,
+  repeatSummary,
   nextRepeatDate,
   nextHolidayDate,
   type DurationParts,
@@ -350,11 +351,11 @@ function CounterCard({
             {item.mode === 'down' ? '目标' : '始于'} {item.date}
             {item.mode === 'down' && item.repeat && item.repeat !== 'none' ? (
               <span
-                className="inline-flex items-center gap-0.5 rounded-full bg-primary-soft px-1.5 text-[0.625rem] font-medium text-primary-text"
-                title={`${REPEAT_LABELS[item.repeat]}重复 · 锚点 ${item.anchorDate}`}
+                className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-primary-soft px-1.5 text-[0.625rem] font-medium text-primary-text"
+                title={`${repeatSummary(item.repeat, item.anchorDate)} · 锚点 ${item.anchorDate}`}
               >
                 <Repeat className="size-2.5" />
-                {REPEAT_LABELS[item.repeat]}
+                {repeatSummary(item.repeat, item.anchorDate)}
               </span>
             ) : null}
           </p>
@@ -530,7 +531,7 @@ function CounterFormInner({
           <DatePicker clearable={false} format="YYYY/MM/DD" value={date} onChange={(next) => next && setDate(next)} />
           {mode === 'down' && repeat !== 'none' ? (
             <p className="text-[0.6875rem] text-ink-subtle">
-              到期后自动滚到下一次，此日期仅作锚点保持不变
+              {`到期后自动滚到下一次 · 锚点${repeatSummary(repeat, date)}`}
             </p>
           ) : null}
         </div>
