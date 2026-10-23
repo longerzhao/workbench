@@ -1,7 +1,7 @@
 import { createElement, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
-import { Pencil, Plus, Trash } from 'lucide-react';
+import { Pencil, Plus, Repeat, Trash } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import type { Countdown, CounterMode } from '@/db/schema';
+import type { Countdown, CountdownRepeat, CounterMode } from '@/db/schema';
 import { countdownRepo } from '@/db/repositories';
 import { toast } from '@/app/store/toast';
 import { Button, IconButton } from '@/components/ui/Button';
@@ -12,7 +12,9 @@ import { useClickOutside } from '@/hooks/useClickOutside';
 import { useNow } from '@/hooks/useNow';
 import {
   HOLIDAYS,
+  REPEAT_LABELS,
   counterDuration,
+  nextRepeatDate,
   nextHolidayDate,
   type DurationParts,
   type HolidayId,
@@ -31,7 +33,11 @@ interface DisplayItem {
   key: string;
   title: string;
   mode: CounterMode;
+  /** 展示用发生日：周期倒计时是下一次发生日，其余是原日期 */
   date: DateKey;
+  /** 存储的锚点日期，供编辑回填 */
+  anchorDate: DateKey;
+  repeat: Countdown['repeat'];
   color: string;
   icon?: string;
   holidayId?: HolidayId;
@@ -54,6 +60,8 @@ export function CountdownPage() {
       title: item.title,
       mode: 'down' as const,
       date: nextHolidayDate(item.id, today),
+      anchorDate: nextHolidayDate(item.id, today),
+      repeat: 'none' as const,
       color: item.color,
       icon: item.icon,
       holidayId: item.id,
@@ -62,16 +70,22 @@ export function CountdownPage() {
 
   const customs = useMemo<DisplayItem[]>(
     () =>
-      (custom ?? []).map((row) => ({
-        key: row.id,
-        title: row.title,
-        mode: row.mode,
-        date: row.date,
-        color: row.color,
-        icon: row.icon ?? DEFAULT_COUNTDOWN_ICON,
-        record: row,
-      })),
-    [custom],
+      (custom ?? []).map((row) => {
+        const repeat = row.repeat ?? 'none';
+        return {
+          key: row.id,
+          title: row.title,
+          mode: row.mode,
+          // 周期倒计时滚到下一次发生日；其余用原日期
+          date: row.mode === 'down' && repeat !== 'none' ? nextRepeatDate(repeat, row.date, today) : row.date,
+          anchorDate: row.date,
+          repeat,
+          color: row.color,
+          icon: row.icon ?? DEFAULT_COUNTDOWN_ICON,
+          record: row,
+        };
+      }),
+    [custom, today],
   );
 
   const visibleHolidays = useMemo(
@@ -332,8 +346,17 @@ function CounterCard({
         )}
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-[0.875rem] font-semibold text-ink">{item.title}</h3>
-          <p className="text-[0.75rem] text-ink-subtle">
+          <p className="flex items-center gap-1 text-[0.75rem] text-ink-subtle">
             {item.mode === 'down' ? '目标' : '始于'} {item.date}
+            {item.mode === 'down' && item.repeat && item.repeat !== 'none' ? (
+              <span
+                className="inline-flex items-center gap-0.5 rounded-full bg-primary-soft px-1.5 text-[0.625rem] font-medium text-primary-text"
+                title={`${REPEAT_LABELS[item.repeat]}重复 · 锚点 ${item.anchorDate}`}
+              >
+                <Repeat className="size-2.5" />
+                {REPEAT_LABELS[item.repeat]}
+              </span>
+            ) : null}
           </p>
         </div>
         <div className="flex h-7 shrink-0 items-center">
@@ -421,6 +444,7 @@ function CounterFormInner({
   const [title, setTitle] = useState(editing?.title ?? '');
   const [mode, setMode] = useState<CounterMode>(editing?.mode ?? 'down');
   const [date, setDate] = useState<DateKey>(editing?.date ?? todayKey());
+  const [repeat, setRepeat] = useState<CountdownRepeat>(editing?.repeat ?? 'none');
   const [color, setColor] = useState(editing?.color ?? COLORS[0]!);
   const [icon, setIcon] = useState(editing?.icon ?? DEFAULT_COUNTDOWN_ICON);
   const [busy, setBusy] = useState(false);
@@ -430,11 +454,13 @@ function CounterFormInner({
     if (busy) return;
     setBusy(true);
     try {
+      // 周期只对倒计时有效
+      const nextRepeat: CountdownRepeat = mode === 'down' ? repeat : 'none';
       if (editing) {
-        await countdownRepo.update(editing.id, { title, mode, date, color, icon });
+        await countdownRepo.update(editing.id, { title, mode, date, repeat: nextRepeat, color, icon });
         toast('已更新', 'success', 2);
       } else {
-        await countdownRepo.create({ title, mode, date, color, icon });
+        await countdownRepo.create({ title, mode, date, repeat: nextRepeat, color, icon });
         toast('已添加', 'success', 2);
       }
       onClose();
@@ -498,9 +524,38 @@ function CounterFormInner({
           </div>
         </div>
         <div className="space-y-1.5">
-          <span className="text-[0.8125rem] text-ink-muted">{mode === 'down' ? '目标日期' : '开始日期'}</span>
+          <span className="text-[0.8125rem] text-ink-muted">
+            {mode === 'down' ? (repeat === 'none' ? '目标日期' : '首次日期（锚点）') : '开始日期'}
+          </span>
           <DatePicker clearable={false} format="YYYY/MM/DD" value={date} onChange={(next) => next && setDate(next)} />
+          {mode === 'down' && repeat !== 'none' ? (
+            <p className="text-[0.6875rem] text-ink-subtle">
+              到期后自动滚到下一次，此日期仅作锚点保持不变
+            </p>
+          ) : null}
         </div>
+        {mode === 'down' ? (
+          <div className="space-y-1.5">
+            <span className="text-[0.8125rem] text-ink-muted">周期</span>
+            <div className="grid grid-cols-4 gap-2">
+              {(Object.keys(REPEAT_LABELS) as CountdownRepeat[]).map((id) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setRepeat(id)}
+                  className={cn(
+                    'rounded-[10px] border px-2 py-2 text-[0.8125rem]',
+                    repeat === id
+                      ? 'border-primary bg-primary-soft text-primary-text'
+                      : 'border-line text-ink-muted hover:bg-surface-2',
+                  )}
+                >
+                  {REPEAT_LABELS[id]}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
         <div className="space-y-1.5">
           <span className="text-[0.8125rem] text-ink-muted">图标</span>
           <div className="flex flex-wrap gap-1.5">

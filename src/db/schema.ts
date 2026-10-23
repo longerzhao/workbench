@@ -63,12 +63,21 @@ export interface NoteFolder {
 
 export type CounterMode = 'down' | 'up';
 
+/**
+ * 倒计时周期：date 存锚点日（如生日 1990-06-15），
+ * 展示时按周期滚到下一次发生日，到期后自动进入下一轮，不改写数据。
+ * 仅对 mode='down' 有意义。
+ */
+export type CountdownRepeat = 'none' | 'yearly' | 'monthly' | 'weekly';
+
 export interface Countdown {
   id: string;
   title: string;
   mode: CounterMode;
-  /** 倒计时为目标日，正计时为起始日，YYYY-MM-DD */
+  /** 倒计时为目标日，正计时为起始日，YYYY-MM-DD；周期倒计时为首次/锚点日 */
   date: DateKey;
+  /** 周期规则，缺省视为 none（旧数据兼容） */
+  repeat?: CountdownRepeat;
   color: string;
   /** lucide 图标名；旧数据可能没有 */
   icon?: string;
@@ -238,6 +247,18 @@ export class WorkbenchDB extends Dexie {
           .toCollection()
           .modify((event: { repeat?: string }) => {
             if (event.repeat === undefined) event.repeat = 'none';
+          });
+      });
+
+    // v5：countdowns 增加周期字段（同样不建索引，回填 none）
+    this.version(5)
+      .stores({})
+      .upgrade(async (tx) => {
+        await tx
+          .table('countdowns')
+          .toCollection()
+          .modify((row: { repeat?: string }) => {
+            if (row.repeat === undefined) row.repeat = 'none';
           });
       });
   }

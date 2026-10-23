@@ -117,6 +117,7 @@ const countdownSchema = z.looseObject({
   title: z.string(),
   mode: z.enum(['down', 'up']),
   date: z.string(),
+  repeat: z.enum(['none', 'yearly', 'monthly', 'weekly']).optional(),
   color: z.string(),
   icon: z.string().optional(),
   order: z.number(),

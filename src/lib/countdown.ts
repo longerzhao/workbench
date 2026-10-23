@@ -1,5 +1,7 @@
 import { Lunar } from 'lunar-javascript';
-import type { DateKey } from '@/lib/date';
+import dayjs from 'dayjs';
+import type { CountdownRepeat } from '@/db/schema';
+import { toDateKey, type DateKey } from '@/lib/date';
 
 export const HOLIDAYS = [
   { id: 'yuandan', title: '元旦', color: '#dc2626', icon: 'PartyPopper' },
@@ -68,6 +70,59 @@ export function nextHolidayDate(id: HolidayId, from: DateKey): DateKey {
 export function startOfDate(key: DateKey): number {
   const [year, month, day] = key.split('-').map(Number);
   return new Date(year!, (month ?? 1) - 1, day ?? 1).getTime();
+}
+
+export const REPEAT_LABELS: Record<CountdownRepeat, string> = {
+  none: '不重复',
+  yearly: '每年',
+  monthly: '每月',
+  weekly: '每周',
+};
+
+/**
+ * 周期倒计时的下一次发生日（含 from 当天）。
+ * 每年取锚点的月/日（2 月 29 在平年跳到下一年）；每月取同一"几号"（没有该号的月跳过）；
+ * 每周取同一 ISO 周几。
+ */
+export function nextRepeatDate(
+  repeat: CountdownRepeat,
+  anchor: DateKey,
+  from: DateKey,
+): DateKey {
+  if (repeat === 'none') return anchor;
+
+  const base = dayjs(anchor);
+  const month = base.month();
+  const day = base.date();
+
+  if (repeat === 'weekly') {
+    const fromDate = dayjs(from);
+    const deltaDays = (base.isoWeekday() - fromDate.isoWeekday() + 7) % 7;
+    return toDateKey(fromDate.add(deltaDays, 'day'));
+  }
+
+  if (repeat === 'yearly') {
+    let year = Number(from.slice(0, 4));
+    for (;;) {
+      const candidate = dayjs(new Date(year, month, day));
+      // 平年没有 2 月 29：该年在候选上不合法，直接试下一年
+      if (candidate.month() === month && candidate.date() === day && candidate.year() === year) {
+        const key = toDateKey(candidate);
+        if (key >= from) return key;
+      }
+      year += 1;
+    }
+  }
+
+  // monthly：从 from 所在月逐月找同一"几号"；该月没有这天（如 2 月没有 31）钳到月末
+  let cursor = dayjs(new Date(Number(from.slice(0, 4)), Number(from.slice(5, 7)) - 1, 1));
+  for (;;) {
+    const clamped = Math.min(day, cursor.daysInMonth());
+    const candidate = dayjs(new Date(cursor.year(), cursor.month(), clamped));
+    const key = toDateKey(candidate);
+    if (key >= from) return key;
+    cursor = cursor.add(1, 'month');
+  }
 }
 
 export function durationBetween(fromMs: number, toMs: number): DurationParts {

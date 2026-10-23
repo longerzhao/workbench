@@ -1,5 +1,5 @@
 import { db, metaGet, metaSet, nowISO } from '..';
-import type { Countdown, CounterMode } from '../schema';
+import type { Countdown, CountdownRepeat, CounterMode } from '../schema';
 import { newId } from '@/lib/id';
 import type { DateKey } from '@/lib/date';
 
@@ -9,6 +9,7 @@ export interface NewCountdownInput {
   title: string;
   mode: CounterMode;
   date: DateKey;
+  repeat?: CountdownRepeat;
   color?: string;
   icon?: string;
 }
@@ -28,6 +29,8 @@ export const countdownRepo = {
       title: input.title.trim() || (input.mode === 'down' ? '未命名倒计时' : '未命名正计时'),
       mode: input.mode,
       date: input.date,
+      // 周期只对倒计时有意义，正计时强制 none
+      repeat: input.mode === 'down' ? (input.repeat ?? 'none') : 'none',
       color: input.color ?? '#7c3aed',
       icon: input.icon ?? 'Hourglass',
       order: maxOrder + 1,
@@ -40,10 +43,14 @@ export const countdownRepo = {
 
   async update(
     id: string,
-    patch: Partial<Pick<Countdown, 'title' | 'mode' | 'date' | 'color' | 'icon'>>,
+    patch: Partial<
+      Pick<Countdown, 'title' | 'mode' | 'date' | 'repeat' | 'color' | 'icon'>
+    >,
   ): Promise<void> {
     const next = { ...patch, updatedAt: nowISO() };
     if (next.title) next.title = next.title.trim();
+    // 切到正计时时周期一并清掉
+    if (next.mode === 'up') next.repeat = 'none';
     await db.countdowns.update(id, next);
   },
 

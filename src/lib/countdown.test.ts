@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { counterDuration, holidayDate, nextHolidayDate } from './countdown';
+import { counterDuration, holidayDate, nextHolidayDate, nextRepeatDate } from './countdown';
 
 describe('holidayDate', () => {
   it('resolves known 2026 dates', () => {
@@ -35,5 +35,42 @@ describe('counterDuration', () => {
     expect(parts.past).toBe(false);
     expect(parts.days).toBe(2);
     expect(parts.hours).toBe(3);
+  });
+});
+
+
+describe('nextRepeatDate', () => {
+  const FROM = '2026-10-22'; // 周四
+
+  it('none 直接返回锚点', () => {
+    expect(nextRepeatDate('none', '2020-01-01', FROM)).toBe('2020-01-01');
+  });
+
+  it('yearly 取锚点的月日，今年未到用今年', () => {
+    expect(nextRepeatDate('yearly', '1990-12-25', FROM)).toBe('2026-12-25');
+  });
+
+  it('yearly 已过滚到下一年', () => {
+    expect(nextRepeatDate('yearly', '1990-01-01', FROM)).toBe('2027-01-01');
+  });
+
+  it('yearly 锚点是 2 月 29 时平年跳过', () => {
+    expect(nextRepeatDate('yearly', '2024-02-29', '2026-01-01')).toBe('2028-02-29');
+  });
+
+  it('monthly 取同一几号，本月的过了滚下月', () => {
+    expect(nextRepeatDate('monthly', '2020-01-15', '2026-10-22')).toBe('2026-11-15');
+    expect(nextRepeatDate('monthly', '2020-01-22', FROM)).toBe('2026-10-22');
+  });
+
+  it('该月没有这天时钳到月末（2 月没有 31 号 → 2 月 28）', () => {
+    expect(nextRepeatDate('monthly', '2020-01-31', '2026-02-20')).toBe('2026-02-28');
+    expect(nextRepeatDate('monthly', '2020-01-31', '2026-03-01')).toBe('2026-03-31');
+    expect(nextRepeatDate('monthly', '2020-01-30', '2026-02-01')).toBe('2026-02-28');
+  });
+
+  it('weekly 取同一 ISO 周几，含 from 当天', () => {
+    expect(nextRepeatDate('weekly', '2020-01-02', FROM)).toBe('2026-10-22');
+    expect(nextRepeatDate('weekly', '2020-01-03', FROM)).toBe('2026-10-23');
   });
 });

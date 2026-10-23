@@ -31,7 +31,7 @@ pnpm dev
 | `pnpm test` | Vitest 单跑一轮（`src/**/*.test.ts`，node 环境） |
 | `pnpm test:watch` | Vitest watch 模式 |
 
-单测现状：18 个测试文件、153 个用例，全部通过。覆盖 `lib/` 下的纯函数
+单测现状：18 个测试文件、160 个用例，全部通过。覆盖 `lib/` 下的纯函数
 （过滤、统计、热力图、日历网格、笔记树、农历换算、模糊匹配）以及
 `db/repositories/` 的读写行为（用 `fake-indexeddb` 在 node 里跑真实的 Dexie）。
 
@@ -110,7 +110,7 @@ pnpm dev
 | `/#/calendar` | 月/周/年三视图 + 日程 CRUD；支持跨天事件与重复（每天/每周/每月） |
 | `/#/habits` | 年度热力图（全部/单习惯）+ 列表 CRUD、排序、归档、连续天数 |
 | `/#/pomodoro` | 今日/本周汇总、趋势、最近会话；计时器仍在主页卡 |
-| `/#/countdown` | 法定假期（元旦/春节/清明/劳动节/端午/中秋/国庆，农历与节气由 `lunar-javascript` 算）+ 自定义计时；可改可删，单个节日可隐藏 |
+| `/#/countdown` | 法定假期（元旦/春节/清明/劳动节/端午/中秋/国庆，农历与节气由 `lunar-javascript` 算）+ 自定义计时；可改可删，单个节日可隐藏；**倒计时支持周期**（每年/每月/每周），到期自动滚到下一次 |
 | `/#/bookmarks` | 分组侧栏 + 列表；分组改名/解散、条目 CRUD、组内拖拽、点击计数 |
 | `/#/analytics` | 四图：完成量趋势、专注趋势、习惯本周达成、项目未完成分布 |
 
@@ -121,7 +121,7 @@ pnpm dev
 - 业务数据存在 **IndexedDB**（Dexie，库名 `zlong-workbench`），界面偏好存在 **localStorage**
 - 全程不发任何网络请求，无账号、无埋点
 - **12 张表**：`todos` `projects` `notes` `noteFolders` `habits` `habitLogs`
-  `pomodoros` `events` `bookmarks` `countdowns` `meta` `trash`，schema 已迁移到 `version(4)`
+  `pomodoros` `events` `bookmarks` `countdowns` `meta` `trash`，schema 已迁移到 `version(5)`
 - **日历支持跨天与重复**：`events` 用 `endDate` 表达跨天/重复截止，`repeat` 支持每天/每周/每月；
   重复与跨天都在查询时展开成「发生列表」（`lib/eventOccurrence.ts`），不预生成数据行
 - **待办支持到期提醒**：展开待办可设提醒时刻，到点弹系统通知 + 提示音
@@ -154,7 +154,7 @@ features/*  ──useLiveQuery──►  db/repositories/*  ──►  Dexie / I
 ```
 src/
 ├── app/          # router、lazyPages 路由懒加载表、navigation、store（ui / pomodoro / toast / command）
-├── db/           # schema（12 张表 + 4 个版本迁移）、seed 示例数据、9 个 repository（带单测）
+├── db/           # schema（12 张表 + 5 个版本迁移）、seed 示例数据、9 个 repository（带单测）
 ├── features/     # dashboard（Bento 网格 + 8 张卡）、todos、notes、calendar、
 │                 # habits、pomodoro、countdown、bookmarks、analytics、shell
 ├── components/   # ui 原语（Panel/Button/Modal/Dropdown/DatePicker/进度环…）、layout 外壳、command 面板
@@ -230,6 +230,7 @@ react-markdown（135 kB）跟着笔记页按需加载。
 | P7 | ⌘K 命令面板、全局快捷键、仓储层测试、PWA 离线、主包分包 | ✅ |
 | P8 | 日历跨天/重复事件、待办到期提醒（通知） | ✅ |
 | P9 | 消息中心（铃铛 + 派生消息面板） | ✅ |
+| P10 | 倒计时周期（每年/每月/每周） | ✅ |
 
 P7 已完成：命令面板（含模糊搜索、跳转、输入即新建）、全局快捷键、36 个仓储层用例、
 manifest + 手写 Service Worker、按路由拆分 chunk。**核心操作都能在主页面与各模块页完成**，
