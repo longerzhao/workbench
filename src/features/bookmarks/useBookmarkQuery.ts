@@ -28,11 +28,11 @@ export function useBookmarkSearch(): {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupParam, groups]);
 
+  // URL 指向的分组可能还没有条目（新建分组后立刻切过去），补进列表末尾且不打乱顺序
   const displayGroups = useMemo(() => {
     if (!groups) return undefined;
-    const names = new Set(groups);
-    names.add(group);
-    return [...names].sort((a, b) => a.localeCompare(b, 'zh-CN'));
+    if (groups.includes(group)) return groups;
+    return [...groups, group];
   }, [groups, group]);
 
   return { group, setGroup, groups: displayGroups };

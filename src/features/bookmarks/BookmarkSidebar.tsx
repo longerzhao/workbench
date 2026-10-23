@@ -1,10 +1,26 @@
 import { useState, type FormEvent } from 'react';
-import { Folder, Pencil, Plus, Trash } from 'lucide-react';
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { Pencil, Plus, Trash } from 'lucide-react';
 import { bookmarkRepo, DEFAULT_BOOKMARK_GROUP } from '@/db/repositories';
 import { toast } from '@/app/store/toast';
 import { IconButton } from '@/components/ui/Button';
 import { SkeletonLines } from '@/components/ui/Skeleton';
 import { cn } from '@/lib/cn';
+import { BookmarkGroupRow } from './BookmarkGroupRow';
 
 export interface BookmarkSidebarProps {
   groups: string[] | undefined;
@@ -22,6 +38,21 @@ export function BookmarkSidebar({
   const [draft, setDraft] = useState('');
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const onDragEnd = (event: DragEndEvent) => {
+    const { active: a, over } = event;
+    if (!over || !groups || a.id === over.id) return;
+    const ids = groups;
+    const oldIndex = ids.indexOf(String(a.id));
+    const newIndex = ids.indexOf(String(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    void bookmarkRepo.reorderGroups(arrayMove(ids, oldIndex, newIndex));
+  };
 
   const createGroup = async (event: FormEvent) => {
     event.preventDefault();
@@ -100,66 +131,67 @@ export function BookmarkSidebar({
             <SkeletonLines lines={4} />
           </div>
         ) : (
-          <ul className="space-y-0.5">
-            {groups.map((name) => {
-              const active = name === activeGroup;
-              if (renaming === name) {
-                return (
-                  <li key={name} className="px-1">
-                    <input
-                      autoFocus
-                      className="input h-8 text-xs"
-                      value={renameDraft}
-                      onChange={(e) => setRenameDraft(e.target.value)}
-                      onBlur={() => void commitRename(name)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') void commitRename(name);
-                        if (e.key === 'Escape') setRenaming(null);
-                      }}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={onDragEnd}
+          >
+            <SortableContext items={groups} strategy={verticalListSortingStrategy}>
+              <ul className="space-y-0.5">
+                {groups.map((name) => {
+                  const active = name === activeGroup;
+                  if (renaming === name) {
+                    return (
+                      <li key={name} className="px-1">
+                        <input
+                          autoFocus
+                          className="input h-8 text-xs"
+                          value={renameDraft}
+                          onChange={(e) => setRenameDraft(e.target.value)}
+                          onBlur={() => void commitRename(name)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') void commitRename(name);
+                            if (e.key === 'Escape') setRenaming(null);
+                          }}
+                        />
+                      </li>
+                    );
+                  }
+                  return (
+                    <BookmarkGroupRow
+                      key={name}
+                      name={name}
+                      active={active}
+                      onSelect={() => onSelect(name)}
+                      actions={
+                        <>
+                          <IconButton
+                            label="重命名"
+                            className="size-7 opacity-0 group-hover:opacity-100"
+                            onClick={() => {
+                              setRenaming(name);
+                              setRenameDraft(name);
+                            }}
+                          >
+                            <Pencil className="size-3" />
+                          </IconButton>
+                          {name !== DEFAULT_BOOKMARK_GROUP ? (
+                            <IconButton
+                              label="解散分组"
+                              className="size-7 text-danger opacity-0 group-hover:opacity-100"
+                              onClick={() => void dissolve(name)}
+                            >
+                              <Trash className="size-3" />
+                            </IconButton>
+                          ) : null}
+                        </>
+                      }
                     />
-                  </li>
-                );
-              }
-              return (
-                <li key={name}>
-                  <div
-                    className={cn(
-                      'group flex items-center gap-1 rounded-[10px] pr-1',
-                      active ? 'bg-primary-soft text-primary-text' : 'hover:bg-surface-2',
-                    )}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => onSelect(name)}
-                      className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2 text-left text-[0.8125rem]"
-                    >
-                      <Folder className="size-3.5 shrink-0 opacity-70" />
-                      <span className="truncate">{name}</span>
-                    </button>
-                    <IconButton
-                      label="重命名"
-                      className="size-7 opacity-0 group-hover:opacity-100"
-                      onClick={() => {
-                        setRenaming(name);
-                        setRenameDraft(name);
-                      }}
-                    >
-                      <Pencil className="size-3" />
-                    </IconButton>
-                    {name !== DEFAULT_BOOKMARK_GROUP ? (
-                      <IconButton
-                        label="解散分组"
-                        className="size-7 text-danger opacity-0 group-hover:opacity-100"
-                        onClick={() => void dissolve(name)}
-                      >
-                        <Trash className="size-3" />
-                      </IconButton>
-                    ) : null}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+                  );
+                })}
+              </ul>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
 

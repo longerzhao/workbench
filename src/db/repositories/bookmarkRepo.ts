@@ -1,4 +1,4 @@
-import { db, moveToTrash, nowISO } from '..';
+import { db, metaGet, metaSet, moveToTrash, nowISO } from '..';
 import type { Bookmark } from '../schema';
 import { newId } from '@/lib/id';
 
@@ -10,6 +10,12 @@ export interface NewBookmarkInput {
 }
 
 export const DEFAULT_BOOKMARK_GROUP = '常用';
+
+/**
+ * 分组顺序存在 meta 表里——分组没有实体表，只是 bookmarks.group 的一个字段。
+ * 和 countdown.hiddenHolidays 同一套路，不值得为它单开一张表。
+ */
+const GROUP_ORDER_KEY = 'bookmark.groupOrder';
 
 /** 归一化 URL：没写协议的补 https://，否则点击会跳到相对路径 */
 export function normalizeUrl(raw: string): string {
@@ -103,7 +109,45 @@ export const bookmarkRepo = {
       names.add(g);
     }
     if (names.size === 0) names.add(DEFAULT_BOOKMARK_GROUP);
-    return [...names].sort((a, b) => a.localeCompare(b, 'zh-CN'));
+
+    const list = [...names];
+    // 按用户排定的顺序返回；没排过的按名称兜底，排在已排定项之后
+    const saved = await this.groupOrder();
+    const rank = new Map(saved.map((name, index) => [name, index]));
+    return list.sort((a, b) => {
+      const ra = rank.get(a);
+      const rb = rank.get(b);
+      if (ra !== undefined && rb !== undefined) return ra - rb;
+      if (ra !== undefined) return -1;
+      if (rb !== undefined) return 1;
+      return a.localeCompare(b, 'zh-CN');
+    });
+  },
+
+  /** 已排定过的分组顺序 */
+  async groupOrder(): Promise<string[]> {
+    const raw = await metaGet(GROUP_ORDER_KEY);
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      return Array.isArray(parsed) ? parsed.filter((n): n is string => typeof n === 'string') : [];
+    } catch {
+      return [];
+    }
+  },
+
+  /** 分组重排：写入顺序数组，顺带把当前所有分组补全进去 */
+  async reorderGroups(orderedNames: string[]): Promise<void> {
+    if (orderedNames.length === 0) return;
+    const all = await db.bookmarks.toArray();
+    const known = new Set(all.map((row) => row.group.trim() || DEFAULT_BOOKMARK_GROUP));
+    known.add(DEFAULT_BOOKMARK_GROUP);
+    // 拖拽顺序在前，未出现的分组接在后面，避免新建分组丢失
+    const merged = [
+      ...orderedNames.filter((name) => known.has(name)),
+      ...[...known].filter((name) => !orderedNames.includes(name)).sort((a, b) => a.localeCompare(b, 'zh-CN')),
+    ];
+    await metaSet(GROUP_ORDER_KEY, JSON.stringify(merged));
   },
 
   /** 组内重排：复用原 order 槽位，避免全表重写 */
