@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Hourglass } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { countdownRepo } from '@/db/repositories';
+import type { Countdown } from '@/db/schema';
 import { Panel } from '@/components/ui/Panel';
 import { SandGlass } from '@/components/ui/SandGlass';
 import { SkeletonLines } from '@/components/ui/Skeleton';
@@ -51,7 +52,10 @@ function sandFraction(days: number, hours: number): number {
 
 interface Candidate {
   title: string;
+  /** 实际锚点：倒计时的目标日（周期已滚到下一次）、正计时的起始日 */
   date: DateKey;
+  /** down = 还有 N 天；up = 已 N 天 */
+  mode: Countdown['mode'];
   /** 周期说明，无周期则空 */
   repeat: string;
   color: string;
@@ -63,7 +67,7 @@ export function CountdownCard() {
   const hidden = useLiveQuery(() => countdownRepo.hiddenHolidayIds(), []);
   const today = todayKey();
 
-  // 最近的两个未过期倒计时：主位 + 次位，用来填满卡片
+  // 最近的两个计时条目：主位 + 次位，用来填满卡片
   const upcoming = useMemo(() => {
     if (!custom || !hidden) return undefined;
     const hiddenSet = new Set(hidden);
@@ -71,6 +75,7 @@ export function CountdownCard() {
     const holidays: Candidate[] = HOLIDAYS.filter((item) => !hiddenSet.has(item.id)).map((item) => ({
       title: item.title,
       date: nextHolidayDate(item.id, today),
+      mode: 'down' as const,
       repeat: '',
       color: item.color,
     }));
@@ -79,28 +84,50 @@ export function CountdownCard() {
       const repeat = row.repeat ?? 'none';
       return {
         title: row.title,
-        // 周期倒计时要滚到下一次发生日，否则锚点日期早已过期，会被下面的 past 过滤掉
+        // 周期倒计时要滚到下一次发生日，否则锚点日期早已过期，会被 past 过滤掉
         date:
           row.mode === 'down' && repeat !== 'none'
             ? nextRepeatDate(repeat, row.date, today)
             : row.date,
+        mode: row.mode,
         repeat: row.mode === 'down' && repeat !== 'none' ? repeatSummary(repeat, row.date) : '',
         color: row.color,
       };
     });
 
-    return [...holidays, ...customs]
-      .map((row) => ({ ...row, parts: counterDuration('down', row.date, now) }))
-      .filter((row) => !row.parts.past)
-      .sort((a, b) => a.parts.days - b.parts.days || a.parts.hours - b.parts.hours)
-      .slice(0, 2);
+    const rows = [...holidays, ...customs]
+      .map((row) => ({ ...row, parts: counterDuration(row.mode, row.date, now) }))
+      // down 的 past = 目标已过；up 的 past = 起始日在未来（"已 N 天"还没开始）。
+      // 两种都不展示。
+      .filter((row) => !row.parts.past);
+
+    // 倒计时按紧迫度排（剩余越小越靠前）；正计时按已过时长排（愈久远愈靠前）。
+    // 两者不混排——"紧迫"对正计时没有意义，硬折算成同一量纲会让刚创建的正计时
+    // 霸占主位，把今晚就到期的倒计时挤走。倒计时优先，正计时只在它缺席时补位。
+    const sorted = [
+      ...rows
+        .filter((row) => row.mode === 'down')
+        .sort((a, b) => a.parts.days - b.parts.days || a.parts.hours - b.parts.hours),
+      ...rows
+        .filter((row) => row.mode === 'up')
+        .sort((a, b) => b.parts.days - a.parts.days || b.parts.hours - a.parts.hours),
+    ];
+
+    return sorted.slice(0, 2);
   }, [custom, hidden, now, today]);
 
   const primary = upcoming?.[0];
   const secondary = upcoming?.[1];
 
-  // 上球剩余沙：越临近空得越快，粒度到小时
-  const sand = primary ? sandFraction(primary.parts.days, primary.parts.hours) : 0;
+  // 上球剩余沙。倒计时用"还剩多少"：越临近越空。
+  // 正计时取补值，语义随之翻转成"已过多久"：刚开始时满沙，愈久远愈空——
+  // 与计时页一致（正计时页面同样按"已 N 天"表述）。
+  const sand =
+    primary?.mode === 'up'
+      ? 1 - sandFraction(primary.parts.days, primary.parts.hours)
+      : primary
+        ? sandFraction(primary.parts.days, primary.parts.hours)
+        : 0;
 
   return (
     <Panel
@@ -129,13 +156,18 @@ export function CountdownCard() {
           <SandGlass
             fraction={sand}
             color={primary.color}
-            label={`沙漏：${primary.title} 还有 ${primary.parts.days} 天`}
+            label={
+              primary.mode === 'up'
+                ? `沙漏：${primary.title} 已 ${primary.parts.days} 天`
+                : `沙漏：${primary.title} 还有 ${primary.parts.days} 天`
+            }
           />
 
           <div className="min-w-0 text-center">
             <p className="truncate text-[0.8125rem] font-medium text-ink">{primary.title}</p>
             <p className="mt-0.5 tabular-nums text-[0.6875rem] text-ink-subtle">
-              还有 {primary.parts.days} 天 · {primary.parts.hours} 时 {primary.parts.minutes} 分
+              {primary.mode === 'up' ? '已' : '还有'} {primary.parts.days} 天 ·{' '}
+              {primary.parts.hours} 时 {primary.parts.minutes} 分
             </p>
           </div>
 
@@ -150,7 +182,7 @@ export function CountdownCard() {
                 {secondary.title}
               </span>
               <span className="shrink-0 text-[0.6875rem] tabular-nums text-ink-subtle">
-                {secondary.parts.days} 天
+                {secondary.mode === 'up' ? '已' : ''} {secondary.parts.days} 天
               </span>
             </div>
           ) : null}
