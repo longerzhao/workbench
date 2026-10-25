@@ -11,7 +11,7 @@ export interface ProjectOpenChartProps {
 
 export function ProjectOpenChart({ bars }: ProjectOpenChartProps) {
   return (
-    <ChartShell title="项目完成进度">
+    <ChartShell title="项目完成进度" chip="累计">
       {bars === undefined ? (
         <SkeletonLines lines={5} />
       ) : bars.length === 0 ? (

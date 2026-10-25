@@ -2,19 +2,22 @@ import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ChartColumn } from 'lucide-react';
+import { habitRepo, pomodoroRepo, projectRepo, todoRepo } from '@/db/repositories';
 import {
-  habitRepo,
-  pomodoroRepo,
-  projectRepo,
-  todoRepo,
-} from '@/db/repositories';
-import { habitWeekBars, projectProgressBars } from '@/lib/analyticsStats';
-import { weekRange } from '@/lib/date';
+  completionHeatmap,
+  habitHitTotals,
+  habitRangeBars,
+  projectProgressBars,
+  rangeSummary,
+} from '@/lib/analyticsStats';
+import { todayKey } from '@/lib/date';
 import { cn } from '@/lib/cn';
 import { CompletedTrendChart } from './CompletedTrendChart';
+import { CompletionHeatChart } from './CompletionHeatChart';
 import { FocusTrendChart } from './FocusTrendChart';
-import { HabitWeekChart } from './HabitWeekChart';
+import { HabitRangeChart } from './HabitRangeChart';
 import { ProjectOpenChart } from './ProjectOpenChart';
+import { RangeSummaryCards } from './RangeSummaryCards';
 
 export function AnalyticsPage() {
   const [search, setSearch] = useSearchParams();
@@ -26,27 +29,51 @@ export function AnalyticsPage() {
     setSearch(next, { replace: true });
   };
 
-  const completed = useLiveQuery(() => todoRepo.dailyCompletedSeries(days), [days]);
-  const focus = useLiveQuery(() => pomodoroRepo.dailySeries(days), [days]);
+  // 环比需要上一周期：查 2×days 天，统计函数负责切半
+  const completed = useLiveQuery(() => todoRepo.dailyCompletedSeries(days * 2), [days]);
+  const focus = useLiveQuery(() => pomodoroRepo.dailySeries(days * 2), [days]);
 
   const habitData = useLiveQuery(async () => {
-    const { start, end } = weekRange();
     const [habits, logs] = await Promise.all([
       habitRepo.listActive(),
-      habitRepo.logsBetween(start, end),
+      habitRepo.listAllLogs(),
     ]);
-    return habitWeekBars(habits, logs, start, end);
+    return { habits, logs };
   }, []);
 
-  const projectData = useLiveQuery(async () => {
+  const projectQuery = useLiveQuery(async () => {
     const [todos, projects] = await Promise.all([
       todoRepo.listAll(),
       projectRepo.listAll(),
     ]);
-    return projectProgressBars(todos, projects);
+    return { todos, projects };
   }, []);
 
-  const rangeLabel = useMemo(() => `近 ${days} 天`, [days]);
+  const today = todayKey();
+  const summary = useMemo(
+    () =>
+      completed && focus
+        ? rangeSummary(completed, focus, days)
+        : undefined,
+    [completed, focus, days],
+  );
+  const habitTotals = useMemo(
+    () => (habitData ? habitHitTotals(habitData.logs, days, today) : undefined),
+    [habitData, days, today],
+  );
+  const habitBars = useMemo(
+    () =>
+      habitData ? habitRangeBars(habitData.habits, habitData.logs, days, today) : undefined,
+    [habitData, days, today],
+  );
+  const projectBars = useMemo(
+    () => (projectQuery ? projectProgressBars(projectQuery.todos, projectQuery.projects) : undefined),
+    [projectQuery],
+  );
+  const heat = useMemo(
+    () => (projectQuery ? completionHeatmap(projectQuery.todos, days, today) : undefined),
+    [projectQuery, days, today],
+  );
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
@@ -54,7 +81,7 @@ export function AnalyticsPage() {
         <ChartColumn className="size-5 text-primary" />
         <div className="min-w-0 flex-1">
           <h1 className="text-base font-semibold text-ink">数据看板</h1>
-          <p className="text-[0.75rem] text-ink-subtle">完成量、专注、习惯与项目积压 · {rangeLabel}</p>
+          <p className="text-[0.75rem] text-ink-subtle">完成量、专注、习惯与时段分布 · 近 {days} 天</p>
         </div>
         <div className="flex gap-1">
           {([14, 30] as const).map((n) => (
@@ -74,14 +101,17 @@ export function AnalyticsPage() {
       </header>
 
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+        {summary && habitTotals ? <RangeSummaryCards summary={summary} habitTotals={habitTotals} days={days} /> : null}
+
         <div className="grid gap-3 md:grid-cols-2">
-          <CompletedTrendChart series={completed} days={days} />
-          <FocusTrendChart series={focus} days={days} />
+          <CompletedTrendChart series={completed?.slice(days)} days={days} />
+          <FocusTrendChart series={focus?.slice(days)} days={days} />
         </div>
         <div className="grid gap-3 md:grid-cols-2">
-          <HabitWeekChart bars={habitData} />
-          <ProjectOpenChart bars={projectData} />
+          <HabitRangeChart bars={habitBars} days={days} />
+          <ProjectOpenChart bars={projectBars} />
         </div>
+        <CompletionHeatChart heat={heat} days={days} />
       </div>
     </div>
   );
