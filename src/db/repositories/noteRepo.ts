@@ -1,5 +1,5 @@
-import { db, moveToTrash, nowISO } from '..';
-import type { Note } from '../schema';
+import { db, moveToTrash, nowISO, purgeFromTrash, restoreFromTrash } from '..';
+import type { Note, TrashRecord } from '../schema';
 import { newId } from '@/lib/id';
 import { toDateKey, type DateKey } from '@/lib/date';
 
@@ -88,5 +88,26 @@ export const noteRepo = {
     const note = await db.notes.get(id);
     if (!note) return;
     await moveToTrash('notes', id, note.title);
+  },
+
+  /** 回收站里的笔记 */
+  async listTrashNotes(): Promise<TrashRecord[]> {
+    const rows = await db.trash.where('table').equals('notes').toArray();
+    return rows.sort((a, b) => b.deletedAt.localeCompare(a.deletedAt));
+  },
+
+  async restoreTrash(trashId: string): Promise<void> {
+    await restoreFromTrash(trashId);
+  },
+
+  async purgeTrash(trashId: string): Promise<void> {
+    await purgeFromTrash(trashId);
+  },
+
+  async emptyTrashNotes(): Promise<number> {
+    const rows = await db.trash.where('table').equals('notes').toArray();
+    if (rows.length === 0) return 0;
+    await db.trash.bulkDelete(rows.map((r) => r.id));
+    return rows.length;
   },
 };

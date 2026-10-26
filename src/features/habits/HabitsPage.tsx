@@ -8,14 +8,15 @@ import { HabitHeatmap } from './HabitHeatmap';
 import { HabitList } from './HabitList';
 
 export function HabitsPage() {
-  const year = new Date().getFullYear();
+  const currentYear = new Date().getFullYear();
+  const [year, setYear] = useState(currentYear);
   const [filterHabitId, setFilterHabitId] = useState<string | 'all'>('all');
   const [showArchived, setShowArchived] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Habit | null>(null);
 
   const habits = useLiveQuery(() => habitRepo.listAll(), []);
-  const { from, to } = yearBounds(year);
+  const { from, to } = useMemo(() => yearBounds(year), [year]);
   const yearLogs = useLiveQuery(() => habitRepo.logsBetween(from, to), [from, to]);
   const allLogs = useLiveQuery(() => habitRepo.listAllLogs(), []);
 
@@ -28,6 +29,8 @@ export function HabitsPage() {
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <HabitHeatmap
         year={year}
+        canGoNext={year < currentYear}
+        onYearChange={setYear}
         logs={yearLogs}
         habits={filterOptions}
         filterHabitId={filterHabitId}

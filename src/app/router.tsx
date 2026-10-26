@@ -11,6 +11,7 @@ import {
   NotesPage,
   PomodoroPage,
   TodosPage,
+  TrashPage,
 } from './lazyPages';
 
 /**
@@ -32,6 +33,7 @@ export const router = createHashRouter([
       { path: 'countdown', element: <CountdownPage /> },
       { path: 'bookmarks', element: <BookmarksPage /> },
       { path: 'analytics', element: <AnalyticsPage /> },
+      { path: 'trash', element: <TrashPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

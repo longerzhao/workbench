@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { Database, HardDriveDownload, HardDriveUpload, Trash } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Database, HardDriveDownload, HardDriveUpload, Trash, Trash2 } from 'lucide-react';
 import { metaSet, nowISO } from '@/db';
 import {
   applySnapshot,
@@ -23,6 +24,7 @@ interface PendingImport {
 }
 
 export function DataMenu() {
+  const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<PendingImport | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -119,6 +121,15 @@ export function DataMenu() {
               从备份导入
             </DropdownItem>
             <DropdownDivider />
+            <DropdownItem
+              icon={<Trash2 />}
+              onClick={() => {
+                close();
+                navigate('/trash');
+              }}
+            >
+              回收站
+            </DropdownItem>
             <DropdownItem
               icon={<Trash />}
               danger

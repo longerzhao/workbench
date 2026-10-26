@@ -8,7 +8,7 @@ import { toast } from '@/app/store/toast';
 import { IconButton } from '@/components/ui/Button';
 import { habitIcon } from '@/lib/habitIcons';
 import { currentStreak, longestStreak, weekHitCount } from '@/lib/habitStats';
-import { todayKey, weekRange } from '@/lib/date';
+import { todayKey, weekRange, addDays, weekdayShort } from '@/lib/date';
 import { cn } from '@/lib/cn';
 
 export interface HabitRowProps {
@@ -16,6 +16,11 @@ export interface HabitRowProps {
   hitDates: Set<string>;
   draggable: boolean;
   onEdit: (habit: Habit) => void;
+}
+
+/** 行内补卡范围：今天往回 7 天（含今天） */
+function lastSevenDays(today: string): string[] {
+  return Array.from({ length: 7 }, (_, i) => addDays(today, i - 6));
 }
 
 export function HabitRow({ habit, hitDates, draggable, onEdit }: HabitRowProps) {
@@ -34,11 +39,10 @@ export function HabitRow({ habit, hitDates, draggable, onEdit }: HabitRowProps) 
   const weekHits = weekHitCount(hitDates, start, end);
   const streak = currentStreak(hitDates, today);
   const longest = longestStreak(hitDates);
-  const todayDone = hitDates.has(today);
 
-  const toggleToday = async () => {
+  const toggle = async (date: string) => {
     try {
-      await habitRepo.toggleLog(habit.id, today);
+      await habitRepo.toggleLog(habit.id, date);
     } catch (error) {
       toast(error instanceof Error ? error.message : '打卡失败', 'danger');
     }
@@ -54,7 +58,7 @@ export function HabitRow({ habit, hitDates, draggable, onEdit }: HabitRowProps) 
   };
 
   const remove = async () => {
-    if (!window.confirm(`删除习惯「${habit.name}」？打卡记录也会清除。`)) return;
+    if (!window.confirm(`删除习惯「${habit.name}」？打卡记录会一起移入回收站，可在数据菜单恢复（保留 7 天）。`)) return;
     try {
       await habitRepo.remove(habit.id);
       toast('已移入回收站');
@@ -103,20 +107,32 @@ export function HabitRow({ habit, hitDates, draggable, onEdit }: HabitRowProps) 
       </div>
 
       {!habit.archived ? (
-        <button
-          type="button"
-          onClick={() => void toggleToday()}
-          aria-pressed={todayDone}
-          className={cn(
-            'h-7 shrink-0 rounded-[8px] border px-2.5 text-[0.75rem] transition-colors',
-            todayDone
-              ? 'border-transparent text-white'
-              : 'border-line text-ink-muted hover:border-primary hover:text-primary-text',
-          )}
-          style={todayDone ? { backgroundColor: habit.color } : undefined}
+        <div
+          className="flex shrink-0 items-center gap-1"
+          role="group"
+          aria-label={`${habit.name} 近 7 天打卡`}
         >
-          {todayDone ? '已打卡' : '打卡'}
-        </button>
+          {lastSevenDays(today).map((date) => {
+            const done = hitDates.has(date);
+            const isToday = date === today;
+            return (
+              <button
+                key={date}
+                type="button"
+                aria-label={`${weekdayShort(date)}${isToday ? '（今天）' : ''} ${done ? '已打卡' : '未打卡'}`}
+                aria-pressed={done}
+                title={`${date}${isToday ? '（今天）' : ''} · 点击${done ? '撤销' : '补卡'}`}
+                onClick={() => void toggle(date)}
+                className={cn(
+                  'size-6 rounded-[7px] border transition-all duration-150',
+                  done ? 'border-transparent' : 'border-line-strong hover:border-primary',
+                  isToday && 'ring-1 ring-primary ring-offset-1 ring-offset-[var(--surface)]',
+                )}
+                style={done ? { backgroundColor: habit.color } : undefined}
+              />
+            );
+          })}
+        </div>
       ) : null}
 
       <IconButton label="编辑" className="size-7 opacity-0 group-hover:opacity-100" onClick={() => onEdit(habit)}>

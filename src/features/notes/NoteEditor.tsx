@@ -114,7 +114,7 @@ export function NoteEditor({ note, onDeleted }: NoteEditorProps) {
   };
 
   const remove = async () => {
-    if (!window.confirm('删除这篇笔记？可在回收站恢复（数据菜单）。')) return;
+    if (!window.confirm('删除这篇笔记？可在顶栏数据菜单的回收站恢复（保留 7 天）。')) return;
     try {
       await noteRepo.remove(note.id);
       toast('已移入回收站');

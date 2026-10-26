@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import dayjs from 'dayjs';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Habit, HabitLog } from '@/db/schema';
 import { habitRepo } from '@/db/repositories';
 import { toast } from '@/app/store/toast';
@@ -42,6 +43,9 @@ function monthLabelsForWeeks(weeks: HeatCell[][]): (string | null)[] {
 
 export interface HabitHeatmapProps {
   year: number;
+  /** 是否允许切到下一年（未来年份没有数据可看） */
+  canGoNext: boolean;
+  onYearChange: (year: number) => void;
   logs: HabitLog[] | undefined;
   habits: Habit[];
   filterHabitId: string | 'all';
@@ -50,6 +54,8 @@ export interface HabitHeatmapProps {
 
 export function HabitHeatmap({
   year,
+  canGoNext,
+  onYearChange,
   logs,
   habits,
   filterHabitId,
@@ -78,7 +84,27 @@ export function HabitHeatmap({
   return (
     <section className="border-b border-line px-4 py-4">
       <div className="mb-3 flex flex-wrap items-center gap-3">
-        <h2 className="text-sm font-semibold text-ink">{year} 年热力图</h2>
+        <div className="flex items-center gap-0.5">
+          <button
+            type="button"
+            aria-label="上一年"
+            className="grid size-7 place-items-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
+            onClick={() => onYearChange(year - 1)}
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+          <h2 className="min-w-[4.5rem] text-center text-sm font-semibold text-ink">{year} 年</h2>
+          <button
+            type="button"
+            aria-label="下一年"
+            disabled={!canGoNext}
+            className="grid size-7 place-items-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-35"
+            onClick={() => canGoNext && onYearChange(year + 1)}
+          >
+            <ChevronRight className="size-4" />
+          </button>
+        </div>
+        <span className="text-sm font-semibold text-ink">热力图</span>
         <select
           className="input h-8 w-auto min-w-[8rem] text-xs"
           value={filterHabitId}

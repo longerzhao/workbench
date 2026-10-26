@@ -1,5 +1,5 @@
-import { db, moveToTrash, nowISO } from '..';
-import type { Habit, HabitLog } from '../schema';
+import { db, nowISO } from '..';
+import type { Habit, HabitLog, TrashRecord } from '../schema';
 import { newId } from '@/lib/id';
 import { addDays, recentDays, todayKey, type DateKey } from '@/lib/date';
 
@@ -58,9 +58,50 @@ export const habitRepo = {
   async remove(id: string): Promise<void> {
     const habit = await db.habits.get(id);
     if (!habit) return;
-    // 习惯被删时一并清掉打卡记录，避免留下孤儿数据
-    await db.habitLogs.where('habitId').equals(id).delete();
-    await moveToTrash('habits', id, habit.name);
+    const logs = await db.habitLogs.where('habitId').equals(id).toArray();
+    // 日志随习惯一起进回收站（存进同一个 payload），恢复时才能完整还原
+    await db.transaction('rw', db.habits, db.habitLogs, db.trash, async () => {
+      await db.habitLogs.where('habitId').equals(id).delete();
+      await db.habits.delete(id);
+      await db.trash.put({
+        id: `habits:${id}`,
+        table: 'habits',
+        entityId: id,
+        payload: { habit, logs },
+        label: habit.name,
+        deletedAt: nowISO(),
+      });
+    });
+  },
+
+  /** 回收站里的习惯（含打卡日志） */
+  async listTrashHabits(): Promise<TrashRecord[]> {
+    const rows = await db.trash.where('table').equals('habits').toArray();
+    return rows.sort((a, b) => b.deletedAt.localeCompare(a.deletedAt));
+  },
+
+  /** 恢复习惯与其全部打卡日志 */
+  async restoreTrash(trashId: string): Promise<void> {
+    const record = await db.trash.get(trashId);
+    if (!record) return;
+    const payload = record.payload as { habit?: Habit; logs?: HabitLog[] } | undefined;
+    if (!payload?.habit) return;
+    await db.transaction('rw', db.habits, db.habitLogs, db.trash, async () => {
+      await db.habits.put(payload.habit!);
+      if (payload.logs?.length) await db.habitLogs.bulkPut(payload.logs);
+      await db.trash.delete(trashId);
+    });
+  },
+
+  async purgeTrash(trashId: string): Promise<void> {
+    await db.trash.delete(trashId);
+  },
+
+  async emptyTrashHabits(): Promise<number> {
+    const rows = await db.trash.where('table').equals('habits').toArray();
+    if (rows.length === 0) return 0;
+    await db.trash.bulkDelete(rows.map((r) => r.id));
+    return rows.length;
   },
 
   /** 打卡 / 取消打卡（幂等） */

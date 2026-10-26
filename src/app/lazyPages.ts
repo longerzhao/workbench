@@ -33,6 +33,9 @@ export const BookmarksPage = lazy(() =>
 export const AnalyticsPage = lazy(() =>
   import('@/features/analytics/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage })),
 );
+export const TrashPage = lazy(() =>
+  import('@/features/trash/TrashPage').then((m) => ({ default: m.TrashPage })),
+);
 export const NotFoundPage = lazy(() =>
   import('@/features/shell/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
 );
