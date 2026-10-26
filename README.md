@@ -31,7 +31,7 @@ pnpm dev
 | `pnpm test` | Vitest 单跑一轮（`src/**/*.test.ts`，node 环境） |
 | `pnpm test:watch` | Vitest watch 模式 |
 
-单测现状：19 个测试文件、177 个用例，全部通过。覆盖 `lib/` 下的纯函数
+单测现状：20 个测试文件、191 个用例，全部通过。覆盖 `lib/` 下的纯函数
 （过滤、统计、热力图、日历网格、笔记树、农历换算、模糊匹配）以及
 `db/repositories/` 的读写行为（用 `fake-indexeddb` 在 node 里跑真实的 Dexie）。
 
@@ -108,10 +108,10 @@ pnpm dev
 | `/#/todos` | 双栏：智能列表（今天/本周/收件箱/全部/已完成/回收站）+ 项目；子任务、优先级、标签、拖拽排序、批量改期/归档、回收站恢复 |
 | `/#/notes` | 左文件夹树 + 右编辑器；编辑/预览 Tab（`react-markdown`，不解析 raw HTML）、标签、置顶 |
 | `/#/calendar` | 月/周/年三视图 + 日程 CRUD；支持跨天事件与重复（每天/每周/每月） |
-| `/#/habits` | 年度热力图（全部/单习惯）+ 列表 CRUD、排序、归档、连续天数 |
+| `/#/habits` | 年度热力图（可切年份、全部/单习惯、单习惯下点格补卡）+ 列表 CRUD、排序、归档、连续天数、行内近 7 天补卡格子 |
 | `/#/pomodoro` | 今日/本周汇总、趋势、最近会话；计时器仍在主页卡 |
 | `/#/countdown` | 法定假期（元旦/春节/清明/劳动节/端午/中秋/国庆，农历与节气由 `lunar-javascript` 算）+ 自定义计时；可改可删，单个节日可隐藏；**倒计时支持周期**（每年/每月/每周），到期自动滚到下一次 |
-| `/#/bookmarks` | 分组侧栏 + 列表；分组改名/解散、条目 CRUD、组内拖拽、点击计数 |
+| `/#/bookmarks` | 分组侧栏 + **网格/列表/拓扑三视图**（按域名哈希取色的图标方块）+ 搜索 + 手工/按点击排序；拓扑视图按分组分列呈现全景，搜索跨全部列并标注来源；分组可拖拽排序、改名/解散、条目 CRUD、点击计数 |
 | `/#/analytics` | 环比摘要卡（完成/专注/打卡 vs 上个等长周期）+ 完成量趋势、专注趋势、习惯达成（含连续天数）、项目累计进度、**完成时段热力图**（星期 × 小时） |
 
 路由用 `createHashRouter`：静态托管和直接双击 `index.html` 打开都不会 404。
@@ -120,6 +120,8 @@ pnpm dev
 
 - 业务数据存在 **IndexedDB**（Dexie，库名 `zlong-workbench`），界面偏好存在 **localStorage**
 - 全程不发任何网络请求，无账号、无埋点
+- **回收站**：`/#/trash` 按待办/笔记/习惯分 Tab，删除的内容保留 7 天可恢复；
+  删除习惯时打卡日志随 payload 一起进站，恢复时完整还原
 - **12 张表**：`todos` `projects` `notes` `noteFolders` `habits` `habitLogs`
   `pomodoros` `events` `bookmarks` `countdowns` `meta` `trash`，schema 已迁移到 `version(5)`
 - **日历支持跨天与重复**：`events` 用 `endDate` 表达跨天/重复截止，`repeat` 支持每天/每周/每月；
