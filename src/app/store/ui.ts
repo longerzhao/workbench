@@ -3,6 +3,9 @@ import { persist } from 'zustand/middleware';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
+export type BookmarkView = 'grid' | 'list' | 'topo';
+export type BookmarkSort = 'manual' | 'clicks';
+
 export interface CardPrefs {
   /** 卡片显示顺序；未在列表中的卡片按默认顺序追加在后面 */
   order: string[];
@@ -17,11 +20,17 @@ interface UIState {
   avatarDataUrl: string | null;
   sidebarCollapsed: boolean;
   cards: CardPrefs;
+  /** 书签页视图：网格（启动页式）或列表 */
+  bookmarkView: BookmarkView;
+  /** 书签排序：手工拖拽顺序或按点击次数 */
+  bookmarkSort: BookmarkSort;
   setTheme: (theme: ThemeMode) => void;
   setDisplayName: (name: string) => void;
   setAvatarDataUrl: (url: string | null) => void;
   cycleTheme: () => void;
   toggleSidebar: () => void;
+  setBookmarkView: (view: BookmarkView) => void;
+  setBookmarkSort: (sort: BookmarkSort) => void;
   setCardOrder: (order: string[]) => void;
   toggleCard: (id: string) => void;
   resetCards: () => void;
@@ -37,6 +46,8 @@ export const useUIStore = create<UIState>()(
       avatarDataUrl: null,
       sidebarCollapsed: false,
       cards: { order: [], hidden: [] },
+      bookmarkView: 'grid',
+      bookmarkSort: 'manual',
 
       setTheme: (theme) => set({ theme }),
 
@@ -51,6 +62,10 @@ export const useUIStore = create<UIState>()(
       },
 
       toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+
+      setBookmarkView: (bookmarkView) => set({ bookmarkView }),
+
+      setBookmarkSort: (bookmarkSort) => set({ bookmarkSort }),
 
       setCardOrder: (order) => set((state) => ({ cards: { ...state.cards, order } })),
 

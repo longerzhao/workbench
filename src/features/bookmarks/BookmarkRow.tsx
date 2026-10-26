@@ -5,7 +5,7 @@ import type { Bookmark } from '@/db/schema';
 import { bookmarkRepo, hostnameOf } from '@/db/repositories';
 import { toast } from '@/app/store/toast';
 import { IconButton } from '@/components/ui/Button';
-import { letterGlyph } from '@/lib/bookmarkUi';
+import { bookmarkTileColor, letterGlyph } from '@/lib/bookmarkUi';
 import { cn } from '@/lib/cn';
 
 export interface BookmarkRowProps {
@@ -73,7 +73,13 @@ export function BookmarkRow({ bookmark, draggable, onEdit }: BookmarkRowProps) {
         className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
         title={bookmark.url}
       >
-        <span className="grid size-8 shrink-0 place-items-center rounded-[8px] bg-primary/12 text-[0.75rem] font-bold uppercase text-primary-text">
+        <span
+          className="grid size-8 shrink-0 place-items-center rounded-[8px] text-[0.75rem] font-bold uppercase"
+          style={{
+            backgroundColor: `${bookmarkTileColor(bookmark.url)}1f`,
+            color: bookmarkTileColor(bookmark.url),
+          }}
+        >
           {letterGlyph(bookmark.title, bookmark.url)}
         </span>
         <span className="min-w-0 flex-1">

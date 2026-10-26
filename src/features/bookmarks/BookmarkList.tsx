@@ -24,11 +24,15 @@ import { BookmarkRow } from './BookmarkRow';
 export interface BookmarkListProps {
   group: string;
   items: Bookmark[] | undefined;
+  /** 手工排序且未被搜索过滤时才允许拖拽 */
+  draggable: boolean;
+  /** 处于搜索过滤中：空结果提示不同 */
+  filtered: boolean;
   onAdd: () => void;
   onEdit: (bookmark: Bookmark) => void;
 }
 
-export function BookmarkList({ group, items, onAdd, onEdit }: BookmarkListProps) {
+export function BookmarkList({ group, items, draggable, filtered, onAdd, onEdit }: BookmarkListProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -46,8 +50,8 @@ export function BookmarkList({ group, items, onAdd, onEdit }: BookmarkListProps)
     return (
       <Empty
         icon={<BookmarkIcon />}
-        title="这个分组还是空的"
-        hint="添加一个常用网址吧。"
+        title={filtered ? '没有匹配的书签' : '这个分组还是空的'}
+        hint={filtered ? '换个关键词试试' : '添加一个常用网址吧。'}
         className="py-16"
         action={
           <Button variant="outline" size="sm" onClick={onAdd}>
@@ -79,7 +83,7 @@ export function BookmarkList({ group, items, onAdd, onEdit }: BookmarkListProps)
             <BookmarkRow
               key={bookmark.id}
               bookmark={bookmark}
-              draggable
+              draggable={draggable}
               onEdit={onEdit}
             />
           ))}
