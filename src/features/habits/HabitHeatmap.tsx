@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import dayjs from 'dayjs';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Habit, HabitLog } from '@/db/schema';
 import { habitRepo } from '@/db/repositories';
 import { toast } from '@/app/store/toast';
@@ -11,6 +11,7 @@ import {
   type HeatCell,
   type HeatLevel,
 } from '@/lib/heatmap';
+import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 import { todayKey } from '@/lib/date';
 import { cn } from '@/lib/cn';
 
@@ -105,18 +106,49 @@ export function HabitHeatmap({
           </button>
         </div>
         <span className="text-sm font-semibold text-ink">热力图</span>
-        <select
-          className="input h-8 w-auto min-w-[8rem] text-xs"
-          value={filterHabitId}
-          onChange={(e) => onFilterChange(e.target.value === 'all' ? 'all' : e.target.value)}
+        <Dropdown
+          align="start"
+          className="w-52"
+          trigger={
+            <button
+              type="button"
+              className="flex h-8 min-w-[8rem] items-center gap-1.5 rounded-[10px] border border-line bg-surface px-2.5 text-xs text-ink transition-colors hover:border-line-strong hover:bg-surface-2"
+            >
+              <span className="min-w-0 flex-1 truncate text-left">
+                {filterHabitId === 'all'
+                  ? '全部习惯'
+                  : (habits.find((h) => h.id === filterHabitId)?.name ?? '全部习惯')}
+              </span>
+              <ChevronDown className="size-3.5 shrink-0 text-ink-subtle" />
+            </button>
+          }
         >
-          <option value="all">全部习惯</option>
-          {habits.map((h) => (
-            <option key={h.id} value={h.id}>
-              {h.name}
-            </option>
-          ))}
-        </select>
+          {(close) => (
+            <>
+              <DropdownItem
+                active={filterHabitId === 'all'}
+                onClick={() => {
+                  onFilterChange('all');
+                  close();
+                }}
+              >
+                全部习惯
+              </DropdownItem>
+              {habits.map((h) => (
+                <DropdownItem
+                  key={h.id}
+                  active={filterHabitId === h.id}
+                  onClick={() => {
+                    onFilterChange(h.id);
+                    close();
+                  }}
+                >
+                  {h.name}
+                </DropdownItem>
+              ))}
+            </>
+          )}
+        </Dropdown>
         <span className="text-[0.75rem] text-ink-subtle">
           {logs === undefined ? '加载中…' : `${activeDays} 天有打卡`}
           {interactive ? ' · 点击格子可补打/撤销' : ' · 切换到单个习惯后可点格打卡'}
