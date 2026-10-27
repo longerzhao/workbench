@@ -245,6 +245,8 @@ function TodoEditor({
   const [note, setNote] = useState(todo.note ?? '');
   const [tagDraft, setTagDraft] = useState('');
   const [subDraft, setSubDraft] = useState('');
+  /** 正在编辑的子任务草稿：subId → 输入值。未进入此表的子任务直接显示已存标题 */
+  const [subDrafts, setSubDrafts] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
@@ -285,6 +287,19 @@ function TodoEditor({
     if (!subDraft.trim()) return;
     await todoRepo.addSubtask(todo.id, subDraft);
     setSubDraft('');
+  };
+
+  const saveSub = async (subId: string) => {
+    const draft = subDrafts[subId];
+    if (draft === undefined) return;
+    // 先清掉草稿，让输入回落到已存的标题（保存成功则是最新值）
+    setSubDrafts((prev) => {
+      const next = { ...prev };
+      delete next[subId];
+      return next;
+    });
+    const next = draft.trim();
+    if (next) await todoRepo.updateSubtask(todo.id, subId, next);
   };
 
   return (
@@ -470,14 +485,25 @@ function TodoEditor({
                 onChange={() => void todoRepo.toggleSubtask(todo.id, sub.id)}
                 label={sub.title}
               />
-              <span
+              <input
+                value={subDrafts[sub.id] ?? sub.title}
+                onChange={(e) =>
+                  setSubDrafts((prev) => ({ ...prev, [sub.id]: e.target.value }))
+                }
+                onBlur={() => void saveSub(sub.id)}
+                onKeyDown={(e: KeyboardEvent) => {
+                  if (e.key === 'Enter' || e.key === 'Escape') {
+                    e.preventDefault();
+                    void saveSub(sub.id);
+                  }
+                }}
+                aria-label={`编辑子任务 ${sub.title}`}
+                placeholder="子任务标题"
                 className={cn(
-                  'min-w-0 flex-1 text-[0.8125rem]',
+                  'h-7 min-w-0 flex-1 bg-transparent text-[0.8125rem] outline-none placeholder:text-ink-subtle',
                   sub.done ? 'text-ink-subtle line-through' : 'text-ink',
                 )}
-              >
-                {sub.title}
-              </span>
+              />
               <IconButton
                 label="删除子任务"
                 className="size-6"

@@ -167,6 +167,22 @@ describe('子任务', () => {
     const row = await db.todos.get(todo.id);
     expect(row?.subtasks[0]?.done).toBe(true);
   });
+
+  it('编辑子任务标题会保存并去掉首尾空格', async () => {
+    const todo = await todoRepo.create({ title: 'A' });
+    const sub = await todoRepo.addSubtask(todo.id, '旧标题');
+    await todoRepo.updateSubtask(todo.id, sub!.id, '  新标题  ');
+    const row = await db.todos.get(todo.id);
+    expect(row?.subtasks[0]?.title).toBe('新标题');
+  });
+
+  it('编辑为空（纯空格）不覆盖原标题', async () => {
+    const todo = await todoRepo.create({ title: 'A' });
+    const sub = await todoRepo.addSubtask(todo.id, '旧标题');
+    await todoRepo.updateSubtask(todo.id, sub!.id, '   ');
+    const row = await db.todos.get(todo.id);
+    expect(row?.subtasks[0]?.title).toBe('旧标题');
+  });
 });
 
 describe('todoRepo.listWithReminder', () => {
