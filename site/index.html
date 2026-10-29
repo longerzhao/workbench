@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>个人工作台 · Local-first Workbench</title>
+    <meta
+      name="description"
+      content="本地优先的个人工作台：待办、笔记、日历、习惯、番茄钟、计时、书签与数据看板，纯前端、零后端、无网络请求。"
+    />
+    <meta name="theme-color" content="#7c3aed" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%237c3aed'/><path d='M16 7.5l1.9 5.6 5.6 1.9-5.6 1.9L16 22.5l-1.9-5.6L8.5 15l5.6-1.9z' fill='white'/></svg>" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script>
+      // 首屏前定好主题与语言，避免闪烁
+      (function () {
+        try {
+          var t = localStorage.getItem('workbench-site:theme');
+          var l = localStorage.getItem('workbench-site:lang');
+          if (t) document.documentElement.dataset.theme = t;
+          if (l) document.documentElement.lang = l;
+        } catch (e) {
+          /* 忽略：损坏的 localStorage 不应阻塞渲染 */
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <!-- three.js 背景画布 -->
+    <canvas id="bg" aria-hidden="true"></canvas>
+    <div class="veil" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <a class="brand" href="./">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="18" height="18">
+            <path
+              d="M16 6l2.3 6.7L25 15l-6.7 2.3L16 24l-2.3-6.7L7 15l6.7-2.3z"
+              fill="currentColor"
+            />
+          </svg>
+        </span>
+        <span class="brand-text">个人工作台</span>
+      </a>
+
+      <nav class="topnav" aria-label="主导航">
+        <a href="#features" data-i18n="nav.features">功能</a>
+        <a href="#highlights" data-i18n="nav.highlights">亮点</a>
+        <a href="#stack" data-i18n="nav.stack">技术</a>
+        <a href="#start" data-i18n="nav.start">上手</a>
+      </nav>
+
+      <div class="topactions">
+        <button
+          type="button"
+          class="chip-btn"
+          id="lang-toggle"
+          aria-label="Switch language"
+          title="中文 / English"
+        >
+          <span id="lang-label">EN</span>
+        </button>
+        <button
+          type="button"
+          class="chip-btn"
+          id="theme-toggle"
+          aria-label="Switch theme"
+          title="Theme"
+        >
+          <span id="theme-icon">◐</span>
+        </button>
+        <a class="btn btn-primary" href="./app/" id="cta-app" data-i18n="cta.open">打开应用</a>
+      </div>
+    </header>
+
+    <main>
+      <!-- ─────────────────────────── Hero ─────────────────────────── -->
+      <section class="hero">
+        <p class="eyebrow" data-i18n="hero.eyebrow">本地优先 · 零后端 · 无网络请求</p>
+        <h1 class="hero-title">
+          <span data-i18n="hero.title1">把一天要做的事</span>
+          <span class="grad" data-i18n="hero.title2">收进同一个页面</span>
+        </h1>
+        <p class="hero-sub" data-i18n="hero.sub">
+          待办、笔记、日历、习惯、番茄钟、计时、书签与数据看板，共享同一份本地数据。
+          装上即用，数据永远留在你自己的浏览器里。
+        </p>
+
+        <div class="hero-actions">
+          <a class="btn btn-primary btn-lg" href="./app/" data-i18n="cta.open">打开应用</a>
+          <a class="btn btn-ghost btn-lg" href="https://github.com/longerzhao/workbench" target="_blank" rel="noreferrer noopener">
+            <span data-i18n="cta.github">查看源码</span>
+          </a>
+        </div>
+
+        <dl class="hero-stats">
+          <div class="stat">
+            <dt data-i18n="stat.modules">功能模块</dt>
+            <dd>9</dd>
+          </div>
+          <div class="stat">
+            <dt data-i18n="stat.tables">本地数据表</dt>
+            <dd>12</dd>
+          </div>
+          <div class="stat">
+            <dt data-i18n="stat.tests">单元测试</dt>
+            <dd>193</dd>
+          </div>
+          <div class="stat">
+            <dt data-i18n="stat.network">网络请求</dt>
+            <dd data-i18n="stat.networkValue">0</dd>
+          </div>
+        </dl>
+      </section>
+
+      <!-- ────────────────────────── Features ───────────────────────── -->
+      <section class="section" id="features">
+        <header class="section-head">
+          <h2 data-i18n="features.title">九个模块，一份数据</h2>
+          <p data-i18n="features.sub">
+            每个模块都有独立页面，主页卡片里也能直接操作，不用来回跳转。
+          </p>
+        </header>
+
+        <div class="grid" id="feature-grid"></div>
+      </section>
+
+      <!-- ───────────────────────── Highlights ─────────────────────── -->
+      <section class="section" id="highlights">
+        <header class="section-head">
+          <h2 data-i18n="hl.title">不只是能用的功能</h2>
+          <p data-i18n="hl.sub">工程细节上做了不少取舍，这里挑最有代表性的几条。</p>
+        </header>
+
+        <div class="cards">
+          <article class="card">
+            <h3 data-i18n="hl.1.title">消息中心是算出来的，不是存下来的</h3>
+            <p data-i18n="hl.1.body">
+              逾期待办、临近日程、待打卡、久未备份……六类消息每次都从当前数据实时推导。
+              待办一勾完，消息自动消失；新逾期待办出现，消息自动多一条。没有陈旧数据要对账。
+            </p>
+          </article>
+
+          <article class="card">
+            <h3 data-i18n="hl.2.title">命令面板，输入即创建</h3>
+            <p data-i18n="hl.2.body">
+              按 ⌘K 模糊搜索待办与笔记，或直接输入一句话回车新建。
+              「新建」刻意排在结果最后——输入「日历」时回车应该跳转到日历，而不是建一条叫日历的待办。
+            </p>
+          </article>
+
+          <article class="card">
+            <h3 data-i18n="hl.3.title">番茄钟靠时间戳算，不靠定时器累加</h3>
+            <p data-i18n="hl.3.body">
+              剩余时间由开始时刻与结束时刻相减得出，刷新页面或笔记本休眠后依然准确。
+              中途放弃只结算真正专注过的秒数，不会把一分钟的尝试记成 25 分钟。
+            </p>
+          </article>
+
+          <article class="card">
+            <h3 data-i18n="hl.4.title">重复日程不预生成数据行</h3>
+            <p data-i18n="hl.4.body">
+              每天 / 每周 / 每月的日程在查询时才展开成「发生列表」，跨天事件按天铺开。
+              数据库里始终只有一条记录，不会随着时间膨胀出几万个副本。
+            </p>
+          </article>
+
+          <article class="card">
+            <h3 data-i18n="hl.5.title">删除是软删除，进回收站保留 7 天</h3>
+            <p data-i18n="hl.5.body">
+              误删的任务可以在回收站里找回来。一键导出 JSON 备份，导入时校验结构，
+              跨表引用失效的记录会自动修复后再入库。
+            </p>
+          </article>
+
+          <article class="card">
+            <h3 data-i18n="hl.6.title">离线可用，装成应用</h3>
+            <p data-i18n="hl.6.body">
+              手写 Service Worker 缓存应用外壳，断网刷新照样打开。
+              桌面 Chrome 一键安装到桌面，手机可以「添加到主屏幕」。
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <!-- ─────────────────────────── Stack ─────────────────────────── -->
+      <section class="section" id="stack">
+        <header class="section-head">
+          <h2 data-i18n="stack.title">技术选型</h2>
+          <p data-i18n="stack.sub">全部依赖克制在必要范围内，不引入组件库。</p>
+        </header>
+
+        <div class="chips" id="stack-chips"></div>
+
+        <div class="arch">
+          <pre class="arch-code"><code>features/*  ──useLiveQuery──►  db/repositories/*  ──►  Dexie / IndexedDB
+     └──useUIStore──►  Zustand persist  ──►  localStorage</code></pre>
+          <p class="arch-note" data-i18n="stack.note">
+            一条硬约束：组件不允许直接 import db，所有读写必须走仓储层。
+            这样统计口径统一、可单测，将来要接后端只需新增一套实现，界面零改动。
+          </p>
+        </div>
+      </section>
+
+      <!-- ─────────────────────────── Start ─────────────────────────── -->
+      <section class="section" id="start">
+        <header class="section-head">
+          <h2 data-i18n="start.title">本地跑起来</h2>
+          <p data-i18n="start.sub">需要 Node 20+ 与 pnpm。</p>
+        </header>
+
+        <div class="steps">
+          <div class="step">
+            <span class="step-no">1</span>
+            <div>
+              <code class="cmd">pnpm install</code>
+              <p data-i18n="start.s1">安装依赖</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-no">2</span>
+            <div>
+              <code class="cmd">pnpm dev</code>
+              <p data-i18n="start.s2">启动开发服务器，打开 http://127.0.0.1:5273/workbench/</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-no">3</span>
+            <div>
+              <code class="cmd">pnpm build</code>
+              <p data-i18n="start.s3">类型检查 + 生产构建到 dist/</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="note-box">
+          <strong data-i18n="start.noteTitle">首次打开会灌入一批示例数据</strong>
+          <span data-i18n="start.note">
+            让主页立刻是「活的」而不是一片空白。想从零开始，用顶栏的「数据 → 清空本地数据」，之后不会再自动播种。
+          </span>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>
+        <span data-i18n="footer.built">纯前端 · 零后端 · 无账号 · 无埋点</span>
+        <span class="dot">·</span>
+        <a href="https://github.com/longerzhao/workbench" target="_blank" rel="noreferrer noopener">GitHub</a>
+      </p>
+      <p class="footer-sub" data-i18n="footer.copy">数据保存在你自己的浏览器里，清缓存前记得先导出备份。</p>
+    </footer>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

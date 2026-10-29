@@ -1,5 +1,6 @@
 /**
- * 离线支持。手写而不引 vite-plugin-pwa：
+ * 应用的离线支持（作用域：/workbench/app/）。
+ * 手写而不引 vite-plugin-pwa：
  * 这个应用只有一个入口和一堆带 hash 的静态资源，workbox 那一整套反而是负担。
  *
  * 策略：
@@ -8,9 +9,10 @@
  * - 数据全在 IndexedDB，本来就不经过网络，所以离线可用的关键只是"页面能打开"
  *
  * 发版注意：改了页面结构就升 VERSION，activate 会清掉旧缓存。
+ * 缓存名带 app- 前缀，官网根目录的 SW 清理旧缓存时会跳过它。
  */
-const VERSION = 'v1';
-const CACHE = `workbench-${VERSION}`;
+const VERSION = 'v2';
+const CACHE = `workbench-app-${VERSION}`;
 
 const APP_SHELL = [
   './',
@@ -34,7 +36,11 @@ self.addEventListener('activate', (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))),
+        Promise.all(
+          keys
+            .filter((key) => key.startsWith('workbench-app-') && key !== CACHE)
+            .map((key) => caches.delete(key)),
+        ),
       )
       .then(() => self.clients.claim()),
   );

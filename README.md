@@ -3,7 +3,13 @@
 本地优先的个人工作台：把**待办 / 笔记 / 日历 / 习惯 / 番茄钟 / 倒计时 / 书签 / 数据看板**收进同一个应用。
 纯前端、零后端、无网络请求，数据全部留在你自己的浏览器里。
 
-在线版本：<https://longerzhao.github.io/workbench/>
+| | 地址 |
+| --- | --- |
+| 🌍 官网 | <https://longerzhao.github.io/workbench/> |
+| 🧩 应用 | <https://longerzhao.github.io/workbench/app/> |
+
+官网与应用同仓同站：仓库里的 `site/` 是官网源码（纯 HTML/CSS/JS，无框架），
+应用本体在 `/app/` 下，两者由同一次 CI 构建一起发布。
 
 ## 快速开始
 
@@ -12,8 +18,9 @@ pnpm install
 pnpm dev
 ```
 
-打开 **<http://127.0.0.1:5273/workbench/>**（注意路径前缀：`vite.config.ts` 里 `base: '/workbench/'`
-是为 GitHub Pages 项目站点设的，访问根路径会被重定向过去）。
+打开 **<http://127.0.0.1:5273/>** 看官网，**<http://127.0.0.1:5273/workbench/app/>** 是应用
+（`vite.config.ts` 里 `base: '/workbench/app/'` 是为 GitHub Pages 项目站点设的，
+开发时官网挂在根路径、应用挂在 base 之下）。
 
 首次打开会灌一批示例数据，让主页面立刻是「活的」。想从零开始，用顶栏的
 **数据 → 清空本地数据**，之后不会再自动播种。
@@ -23,7 +30,9 @@ pnpm dev
 | 命令 | 作用 |
 | --- | --- |
 | `pnpm dev` | 启动开发服务器（HMR），127.0.0.1:5273 |
-| `pnpm build` | 类型检查 + 生产构建到 `dist/` |
+| `pnpm build` | 类型检查 + 构建应用到 `dist/app/` + 组装官网到 `dist/` 根目录 |
+| `pnpm build:app` | 只构建应用，不组装官网 |
+| `pnpm build:site` | 只把 `site/` 拷进已有的 `dist/` |
 | `pnpm preview` | 预览构建产物 |
 | `pnpm typecheck` | 只跑 `tsc --noEmit` |
 | `pnpm lint` | ESLint（含 react-hooks v7 的编译期规则） |
@@ -165,14 +174,51 @@ src/
 ├── styles/       # Tailwind 4 入口 + 葡萄紫主题令牌
 └── types/        # lunar-javascript 的类型声明
 
+site/             # 官网（纯 HTML/CSS/JS，无框架，不参与 TS 编译）
+├── index.html    # 结构 + 多语言文案挂载点
+├── styles.css    # 主题令牌（浅色/深色/跟随系统 × 4 套强调色）
+├── main.js       # three.js 背景场景、多语言切换、主题切换、滚动揭示
+└── sw.js         # 官网的 Service Worker（兼清理旧版应用缓存）
+
 public/
 ├── zodiac/       # 十二生肖剪纸 SVG（年视图水印，作 mask 用）
 ├── icons/        # PWA 图标 192 / 512
 ├── manifest.webmanifest
-└── sw.js         # Service Worker（手写，无第三方依赖）
+└── sw.js         # 应用的 Service Worker（手写，无第三方依赖）
+
+scripts/
+└── build-site.mjs # 把 site/ 组装到 dist/ 根目录（应用在 dist/app/）
 ```
 
 规模：138 个 `.ts`/`.tsx`（其中 70 个 `.tsx`），约 14,318 行；另有 14 个测试文件。
+
+## 官网
+
+`site/` 是项目的官网，**纯 HTML/CSS/JS，不引入任何框架**：
+
+- **three.js 背景**：900 颗粒子 + 近距离连线 + 中心多面体，鼠标视差跟随；
+  尊重 `prefers-reduced-motion`，降级为低粒子数的静态构图
+- **多主题**：浅色 / 深色 / 跟随系统三态循环，另有 4 套强调色（葡萄紫、海洋、森林、日落）
+- **多语言**：中文 / English 实时切换，`<html lang>`、标题、动态卡片同步更新
+- **本地偏好持久化**：`workbench-site:theme` / `:lang` / `:accent`
+
+官网与应用共用一次 CI 构建，产物结构：
+
+```
+dist/
+├── index.html        ← 官网（/workbench/）
+├── styles.css
+├── main.js
+├── sw.js
+└── app/              ← 应用（/workbench/app/）
+    ├── index.html
+    ├── assets/…
+    ├── manifest.webmanifest
+    └── sw.js
+```
+
+> 应用用 hash 路由，放在子目录下无需任何服务端重写规则。
+> 旧链接 `/workbench/#/todos` 会在官网侧自动跳转到 `/workbench/app/#/todos`。
 
 ## 技术栈
 
@@ -209,12 +255,17 @@ react-markdown（135 kB）跟着笔记页按需加载。
 `.github/workflows/pages.yml`：push 到 `main` → Node 22 + pnpm 10 → `pnpm install --frozen-lockfile`
 → `pnpm build` → 上传 `dist` 发布到 GitHub Pages。`vite.config.ts` 的 `base` 必须与仓库名一致。
 
+一次构建同时产出官网与应用，`dist/` 的结构见上面「官网」一节。
+
 ## 安装与离线
 
 - 桌面 Chrome / Edge：地址栏右侧「安装」；Android Chrome：「添加到主屏幕」；iOS Safari：共享 →「添加到主屏幕」
 - Service Worker **只在生产构建注册**，开发环境不注册（否则会把 HMR 的请求也缓存住）
 - 策略：导航请求 network-first 回退缓存的 `index.html`，带 hash 的静态资源 cache-first
 - 数据全在 IndexedDB，不经过网络，所以离线的关键只是「页面能打开」
+- **两个 SW，作用域互不重叠**：应用的 `public/sw.js` 只管 `/workbench/app/`，
+  官网的 `site/sw.js` 管 `/workbench/`。官网那个还兼一项清理职责——
+  删掉旧版应用留下的 `workbench-v1` 缓存（那正是「Failed to fetch dynamically imported module」报错的根因）
 - 发版若改了页面结构，升一下 `public/sw.js` 里的 `VERSION`，`activate` 会清掉旧缓存
 
 ## 进度
@@ -233,7 +284,11 @@ react-markdown（135 kB）跟着笔记页按需加载。
 | P8 | 日历跨天/重复事件、待办到期提醒（通知） | ✅ |
 | P9 | 消息中心（铃铛 + 派生消息面板） | ✅ |
 | P10 | 倒计时周期（每年/每月/每周） | ✅ |
+| P11 | 官网（three.js 动效 / 多主题 / 多语言）、应用迁至 `/app/`、双 SW 作用域 | ✅ |
 
 P7 已完成：命令面板（含模糊搜索、跳转、输入即新建）、全局快捷键、36 个仓储层用例、
 manifest + 手写 Service Worker、按路由拆分 chunk。**核心操作都能在主页面与各模块页完成**，
 共用同一份数据。
+
+P11 新增了独立官网 `site/`（纯 HTML/CSS/JS + three.js），与应用同仓同站发布：
+官网在 `/workbench/`，应用迁到 `/workbench/app/`，两套 Service Worker 作用域互不重叠。
