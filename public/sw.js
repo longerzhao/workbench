@@ -71,7 +71,12 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     caches.match(request).then((cached) => {
-      if (cached) return cached;
+      // 缓存里若是 HTML（应用入口），一律回源：
+      // 旧入口指向的 chunk 往往已随新版本删除，用它只会换来一个 404。
+      if (cached) {
+        const type = cached.headers.get('content-type') ?? '';
+        if (!type.includes('text/html')) return cached;
+      }
       return fetch(request).then((response) => {
         if (response.ok) {
           const copy = response.clone();

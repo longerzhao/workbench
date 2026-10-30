@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
 import { CommandPalette } from '@/components/command/CommandPalette';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useCommandStore } from '@/app/store/command';
 import { useGlobalHotkeys } from '@/hooks/useHotkeys';
@@ -44,9 +45,11 @@ export function AppShell() {
         <TopBar />
         <main className="relative min-h-0 flex-1 overflow-hidden">
           <div className="absolute inset-0 overflow-y-auto">
-            <Suspense fallback={<RouteFallback />}>
-              <Outlet />
-            </Suspense>
+            <ErrorBoundary>
+              <Suspense fallback={<RouteFallback />}>
+                <Outlet />
+              </Suspense>
+            </ErrorBoundary>
           </div>
         </main>
         <MobileNav />

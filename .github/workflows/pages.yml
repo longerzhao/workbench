@@ -34,5 +34,10 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
+          # 保留上一版的产物：发版瞬间还开着的旧标签页，仍会按旧文件名去取 chunk。
+          # 那些文件若被立刻删掉，懒加载就会以
+          # "Failed to fetch dynamically imported module" 收场。
+          # 应用侧另有一层兜底（chunk 加载失败自动刷新），两者叠加才稳。
+          keep_files: true
       - id: deployment
         uses: actions/deploy-pages@v4
