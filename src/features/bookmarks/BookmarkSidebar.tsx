@@ -14,7 +14,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Pencil, Plus, Trash } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, Pencil, Plus, Trash } from 'lucide-react';
 import { bookmarkRepo, DEFAULT_BOOKMARK_GROUP } from '@/db/repositories';
 import { toast } from '@/app/store/toast';
 import { IconButton } from '@/components/ui/Button';
@@ -27,6 +27,9 @@ export interface BookmarkSidebarProps {
   activeGroup: string;
   onSelect: (group: string) => void;
   compact?: boolean;
+  /** 折叠成窄边条，只留展开按钮 */
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export function BookmarkSidebar({
@@ -34,6 +37,8 @@ export function BookmarkSidebar({
   activeGroup,
   onSelect,
   compact,
+  collapsed,
+  onToggleCollapse,
 }: BookmarkSidebarProps) {
   const [draft, setDraft] = useState('');
   const [renaming, setRenaming] = useState<string | null>(null);
@@ -117,15 +122,46 @@ export function BookmarkSidebar({
     );
   }
 
+  // 折叠态：收成窄边条，只留一个展开按钮，内容区因此能多出 180px。
+  // 侧栏始终是同一个元素，只改宽度——这样折叠才有平滑过渡。
   return (
-    <aside className="flex w-[220px] shrink-0 flex-col border-r border-line bg-surface">
-      <div className="border-b border-line px-3 py-3">
-        <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-ink-subtle">
-          分组
-        </p>
+    <aside
+      className={cn(
+        'flex shrink-0 flex-col overflow-hidden border-r border-line bg-surface transition-[width] duration-200',
+        collapsed ? 'w-10' : 'w-[220px]',
+      )}
+    >
+      <div
+        className={cn(
+          'flex items-center justify-between border-b border-line',
+          collapsed ? 'justify-center px-1.5 py-3' : 'px-3 py-3',
+        )}
+      >
+        {collapsed ? (
+          <IconButton
+            label="展开分组"
+            className="size-7"
+            onClick={() => onToggleCollapse?.()}
+          >
+            <PanelLeftOpen className="size-3.5" />
+          </IconButton>
+        ) : (
+          <>
+            <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-ink-subtle">
+              分组
+            </p>
+            <IconButton
+              label="折叠分组"
+              className="size-6"
+              onClick={() => onToggleCollapse?.()}
+            >
+              <PanelLeftClose className="size-3.5" />
+            </IconButton>
+          </>
+        )}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-2">
+      <div className={cn('min-h-0 flex-1 overflow-y-auto p-2', collapsed && 'hidden')}>
         {groups === undefined ? (
           <div className="p-2">
             <SkeletonLines lines={4} />
@@ -195,7 +231,10 @@ export function BookmarkSidebar({
         )}
       </div>
 
-      <form onSubmit={(e) => void createGroup(e)} className="border-t border-line p-2">
+      <form
+        onSubmit={(e) => void createGroup(e)}
+        className={cn('border-t border-line p-2', collapsed && 'hidden')}
+      >
         <div className="flex gap-1.5">
           <input
             className="input h-8 min-w-0 flex-1 text-xs"

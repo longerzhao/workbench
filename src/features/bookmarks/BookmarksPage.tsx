@@ -33,6 +33,8 @@ export function BookmarksPage() {
   const setBookmarkView = useUIStore((state) => state.setBookmarkView);
   const bookmarkSort = useUIStore((state) => state.bookmarkSort);
   const setBookmarkSort = useUIStore((state) => state.setBookmarkSort);
+  const groupsCollapsed = useUIStore((state) => state.bookmarkGroupsCollapsed);
+  const toggleGroupsCollapsed = useUIStore((state) => state.toggleBookmarkGroups);
 
   // 排序与过滤是 lib 里的纯函数，带单测
   const visible = useMemo(() => {
@@ -58,7 +60,13 @@ export function BookmarksPage() {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden md:flex-row">
       <div className="hidden md:flex">
-        <BookmarkSidebar groups={groups} activeGroup={group} onSelect={setGroup} />
+        <BookmarkSidebar
+          groups={groups}
+          activeGroup={group}
+          onSelect={setGroup}
+          collapsed={groupsCollapsed}
+          onToggleCollapse={toggleGroupsCollapsed}
+        />
       </div>
 
       <div className="border-b border-line md:hidden">

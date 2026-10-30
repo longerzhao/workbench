@@ -24,6 +24,8 @@ interface UIState {
   bookmarkView: BookmarkView;
   /** 书签排序：手工拖拽顺序或按点击次数 */
   bookmarkSort: BookmarkSort;
+  /** 书签页左侧「分组」栏是否折叠 */
+  bookmarkGroupsCollapsed: boolean;
   setTheme: (theme: ThemeMode) => void;
   setDisplayName: (name: string) => void;
   setAvatarDataUrl: (url: string | null) => void;
@@ -31,6 +33,7 @@ interface UIState {
   toggleSidebar: () => void;
   setBookmarkView: (view: BookmarkView) => void;
   setBookmarkSort: (sort: BookmarkSort) => void;
+  toggleBookmarkGroups: () => void;
   setCardOrder: (order: string[]) => void;
   toggleCard: (id: string) => void;
   resetCards: () => void;
@@ -48,6 +51,7 @@ export const useUIStore = create<UIState>()(
       cards: { order: [], hidden: [] },
       bookmarkView: 'grid',
       bookmarkSort: 'manual',
+      bookmarkGroupsCollapsed: false,
 
       setTheme: (theme) => set({ theme }),
 
@@ -66,6 +70,9 @@ export const useUIStore = create<UIState>()(
       setBookmarkView: (bookmarkView) => set({ bookmarkView }),
 
       setBookmarkSort: (bookmarkSort) => set({ bookmarkSort }),
+
+      toggleBookmarkGroups: () =>
+        set((state) => ({ bookmarkGroupsCollapsed: !state.bookmarkGroupsCollapsed })),
 
       setCardOrder: (order) => set((state) => ({ cards: { ...state.cards, order } })),
 
