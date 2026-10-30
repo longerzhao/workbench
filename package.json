@@ -9,7 +9,7 @@
     "build": "tsc --noEmit && vite build && node scripts/build-site.mjs",
     "build:app": "tsc --noEmit && vite build",
     "build:site": "node scripts/build-site.mjs",
-    "preview": "vite preview",
+    "preview": "node scripts/preview.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",

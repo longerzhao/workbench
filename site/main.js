@@ -56,7 +56,7 @@ const DICT = {
     'start.title': '本地跑起来',
     'start.sub': '需要 Node 20+ 与 pnpm。',
     'start.s1': '安装依赖',
-    'start.s2': '启动开发服务器，打开 http://127.0.0.1:5273/workbench/',
+    'start.s2': '启动开发服务器，打开 http://127.0.0.1:5273/workbench/app/',
     'start.s3': '类型检查 + 生产构建到 dist/',
     'start.noteTitle': '首次打开会灌入一批示例数据',
     'start.note':
@@ -129,7 +129,7 @@ const DICT = {
     'start.title': 'Run it locally',
     'start.sub': 'Needs Node 20+ and pnpm.',
     'start.s1': 'Install dependencies',
-    'start.s2': 'Start the dev server and open http://127.0.0.1:5273/workbench/',
+    'start.s2': 'Start the dev server and open http://127.0.0.1:5273/workbench/app/',
     'start.s3': 'Typecheck and build to dist/',
     'start.noteTitle': 'Demo data is seeded on first open',
     'start.note':
@@ -567,9 +567,15 @@ function redirectLegacyHash() {
  * 注册官网自己的 SW（作用域 /workbench/）。
  * 它在 activate 时会清掉旧版应用留下的 workbench-v1 缓存——
  * 那是「Failed to fetch dynamically imported module」报错的根因。
+ *
+ * 与应用一样只在生产构建注册：开发时 SW 会把开发资源也缓存住，
+ * 既干扰 HMR，也让「改完刷新看不到变化」变得难以排查。
  */
 function initServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
+  // 开发环境的静态站由 Vite 中间件直接提供，没有 /sw.js，误注册只会报错
+  const isDev = location.port === '5273' || location.hostname === 'localhost';
+  if (isDev) return;
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch((error) => {
       console.warn('[site] Service Worker 注册失败', error);

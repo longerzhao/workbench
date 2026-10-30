@@ -8,6 +8,7 @@ import { fileToAvatarDataUrl } from '@/lib/avatar';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Modal } from '@/components/ui/Modal';
+import { GitHubSyncSection } from './GitHubSyncSection';
 
 export interface SettingsModalProps {
   onClose: () => void;
@@ -229,6 +230,8 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             「今日进度」常驻侧栏，不在此列表中。卡片顺序可直接在总览页拖拽调整。
           </p>
         </section>
+
+        <GitHubSyncSection />
       </div>
     </Modal>
   );

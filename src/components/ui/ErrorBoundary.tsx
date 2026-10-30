@@ -4,6 +4,12 @@ import { Button } from './Button';
 
 interface Props {
   children: ReactNode;
+  /**
+   * page —— 页面级：某个模块页加载失败（通常是发版后 chunk 失效）
+   * shell —— 外壳级：侧栏、顶栏、弹窗出错。此时保留外壳，
+   *          否则整个界面会连同侧栏一起消失，用户连「刷新」都找不到
+   */
+  variant?: 'page' | 'shell';
 }
 
 interface State {
@@ -11,13 +17,11 @@ interface State {
 }
 
 /**
- * 路由级错误边界。
+ * 错误边界。
  *
- * 懒加载的页面 chunk 拿不到时，React 会把异常抛到这里。没有边界的话整页只剩
- * 一句 "Unexpected Application Error!"，用户既看不懂也不知道该怎么办。
- *
- * 这里给出人话说明和一个「重新加载」按钮：绝大多数情况下只是版本过期了，
- * 刷新一下就能拿到新版本。
+ * React 里一次未捕获的渲染异常会让整棵树变成空白，没有边界的话用户看到的是
+ * 一片纯色，连发生了什么都不知道。这里给出人话说明和一个「重新加载」按钮：
+ * 绝大多数情况下只是版本过期了，刷新一下就能拿到新版本。
  */
 export class ErrorBoundary extends Component<Props, State> {
   override state: State = { error: null };
@@ -27,7 +31,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   override componentDidCatch(error: Error, info: ErrorInfo): void {
-    console.error('[workbench] 页面渲染失败', error, info.componentStack);
+    console.error('[workbench] 渲染失败', error, info.componentStack);
   }
 
   private handleReload = () => {
@@ -38,8 +42,10 @@ export class ErrorBoundary extends Component<Props, State> {
     const { error } = this.state;
     if (!error) return this.props.children;
 
+    const isShell = this.props.variant === 'shell';
+
     return (
-      <div className="grid h-full place-items-center p-6">
+      <div className={isShell ? 'h-full bg-canvas' : 'grid h-full place-items-center p-6'}>
         <div className="card w-full max-w-md px-6 py-8 text-center">
           <h1 className="text-base font-semibold text-ink">这个页面没能加载出来</h1>
           <p className="mt-2 text-[0.8125rem] leading-relaxed text-ink-muted">

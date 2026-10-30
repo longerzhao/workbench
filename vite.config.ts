@@ -38,8 +38,24 @@ function serveSite() {
           return;
         }
 
-        // 只处理官网自己的路径，其余交给 Vite（应用在 base 之下）
         const clean = url.split('?')[0]!.split('#')[0]!;
+
+        // 应用搬到了 /workbench/app/，老地址 /workbench/ 现在没有意义了。
+        // 与其让 Vite 抛一句生硬的 base 提示，不如直接指路。
+        if (clean === '/workbench' || clean === '/workbench/') {
+          const res2 = res as {
+            setHeader: (k: string, v: string) => void;
+            end: (b: string) => void;
+          };
+          res2.setHeader('Content-Type', 'text/html; charset=utf-8');
+          res2.end(
+            '<meta charset="utf-8"><p>应用已移动到 <a href="/workbench/app/">/workbench/app/</a>，' +
+              '根路径 <a href="/">/</a> 是官网。</p>',
+          );
+          return;
+        }
+
+        // 只处理官网自己的路径，其余交给 Vite（应用在 base 之下）
         const rel = clean === '/' ? 'index.html' : clean.replace(/^\/+/, '');
         const target = join(SITE_DIR, normalize(rel));
 
@@ -86,6 +102,11 @@ export default defineConfig({
     // 不做手工分包：趋势卡已经用 React.lazy 动态引入，
     // recharts 会自然落到独立 chunk 里，交给打包器判断即可。
   },
+  /**
+   * 预览不用 vite preview：它的服务根目录取自 build.outDir（dist/app），
+   * 官网就访问不到了。改用 scripts/preview.mjs，把 dist/ 按线上结构
+   * （站点挂在 /workbench/ 下）伺服，与 GitHub Pages 完全一致。
+   */
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts'],

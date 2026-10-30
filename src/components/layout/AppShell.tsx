@@ -38,24 +38,28 @@ export function AppShell() {
   const paletteOpen = useCommandStore((state) => state.open);
 
   return (
-    <div className="flex h-full overflow-hidden bg-canvas">
-      <Sidebar />
+    // 外层兜底：侧栏、顶栏、弹窗里抛出的异常也会冒泡到整棵 React 树，
+    // 没有这层的话，一次渲染异常就是一片空白。内层那个只管页面本身。
+    <ErrorBoundary variant="shell">
+      <div className="flex h-full overflow-hidden bg-canvas">
+        <Sidebar />
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar />
-        <main className="relative min-h-0 flex-1 overflow-hidden">
-          <div className="absolute inset-0 overflow-y-auto">
-            <ErrorBoundary>
-              <Suspense fallback={<RouteFallback />}>
-                <Outlet />
-              </Suspense>
-            </ErrorBoundary>
-          </div>
-        </main>
-        <MobileNav />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <TopBar />
+          <main className="relative min-h-0 flex-1 overflow-hidden">
+            <div className="absolute inset-0 overflow-y-auto">
+              <ErrorBoundary>
+                <Suspense fallback={<RouteFallback />}>
+                  <Outlet />
+                </Suspense>
+              </ErrorBoundary>
+            </div>
+          </main>
+          <MobileNav />
+        </div>
+
+        {paletteOpen ? <CommandPalette /> : null}
       </div>
-
-      {paletteOpen ? <CommandPalette /> : null}
-    </div>
+    </ErrorBoundary>
   );
 }
