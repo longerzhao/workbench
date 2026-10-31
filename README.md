@@ -1,7 +1,7 @@
 # 个人工作台 · zlong-workbench
 
 本地优先的个人工作台：把**待办 / 笔记 / 日历 / 习惯 / 番茄钟 / 倒计时 / 书签 / 数据看板**收进同一个应用。
-纯前端、零后端、无网络请求，数据全部留在你自己的浏览器里。
+纯前端、零后端，业务数据全部留在你自己的浏览器里。
 
 | | 地址 |
 | --- | --- |
@@ -33,15 +33,15 @@ pnpm dev
 | `pnpm build` | 类型检查 + 构建应用到 `dist/app/` + 组装官网到 `dist/` 根目录 |
 | `pnpm build:app` | 只构建应用，不组装官网 |
 | `pnpm build:site` | 只把 `site/` 拷进已有的 `dist/` |
-| `pnpm preview` | 预览构建产物 |
+| `pnpm preview` | 预览构建产物（按线上结构伺服：官网在 `/workbench/`，应用在 `/workbench/app/`） |
 | `pnpm typecheck` | 只跑 `tsc --noEmit` |
 | `pnpm lint` | ESLint（含 react-hooks v7 的编译期规则） |
 | `pnpm format` | Prettier 格式化 `src/` |
 | `pnpm test` | Vitest 单跑一轮（`src/**/*.test.ts`，node 环境） |
 | `pnpm test:watch` | Vitest watch 模式 |
 
-单测现状：20 个测试文件、191 个用例，全部通过。覆盖 `lib/` 下的纯函数
-（过滤、统计、热力图、日历网格、笔记树、农历换算、模糊匹配）以及
+单测现状：21 个测试文件、240 个用例，全部通过。覆盖 `lib/` 下的纯函数
+（过滤、统计、热力图、日历网格、笔记树、农历换算、模糊匹配、GitHub 同步解析）以及
 `db/repositories/` 的读写行为（用 `fake-indexeddb` 在 node 里跑真实的 Dexie）。
 
 ## 主页面
@@ -122,13 +122,16 @@ pnpm dev
 | `/#/countdown` | 法定假期（元旦/春节/清明/劳动节/端午/中秋/国庆，农历与节气由 `lunar-javascript` 算）+ 自定义计时；可改可删，单个节日可隐藏；**倒计时支持周期**（每年/每月/每周），到期自动滚到下一次 |
 | `/#/bookmarks` | 分组侧栏 + **网格/列表/拓扑三视图**（按域名哈希取色的图标方块）+ 搜索 + 手工/按点击排序；拓扑视图按分组分列呈现全景，搜索跨全部列并标注来源；分组可拖拽排序、改名/解散、条目 CRUD、点击计数 |
 | `/#/analytics` | 环比摘要卡（完成/专注/打卡 vs 上个等长周期）+ 完成量趋势、专注趋势、习惯达成（含连续天数）、项目累计进度、**完成时段热力图**（星期 × 小时） |
+| `/#/trash` | 回收站：待办 / 笔记 / 习惯分 Tab，可恢复、永久删除或清空整类（从顶栏「数据」菜单进入） |
 
 路由用 `createHashRouter`：静态托管和直接双击 `index.html` 打开都不会 404。
 
 ## 数据与隐私
 
 - 业务数据存在 **IndexedDB**（Dexie，库名 `zlong-workbench`），界面偏好存在 **localStorage**
-- 全程不发任何网络请求，无账号、无埋点
+- 默认**不发任何网络请求**，无账号、无埋点
+- 唯一的例外是**主动开启的 GitHub 同步**（见下节）：开启后数据才会发往 `api.github.com`，
+  且只发你自己指定的那个仓库；不开就完全不出网
 - **回收站**：`/#/trash` 按待办/笔记/习惯分 Tab，删除的内容保留 7 天可恢复；
   删除习惯时打卡日志随 payload 一起进站，恢复时完整还原
 - **12 张表**：`todos` `projects` `notes` `noteFolders` `habits` `habitLogs`
@@ -145,6 +148,43 @@ pnpm dev
   - **从备份导入** —— zod 校验结构，可选「合并」或「覆盖」；覆盖前会自动先下载一份当前数据的快照；
     跨表引用（任务→项目、打卡→习惯、笔记→文件夹）失效的会在入库前自动修复，并提示修复条数
   - **清空本地数据** —— 需二次确认，含回收站；清完会补写 `seededAt` 标记，示例数据不会长回来
+
+## GitHub 同步
+
+设置面板里的「GitHub 同步」可以把本地数据同步到**你自己的** GitHub 仓库，
+相当于给自己加一个可版本控制的备份，也能在多台设备之间搬数据。
+
+**默认关闭。** 关闭时整个同步层不参与任何逻辑，行为与之前完全一致，也不会发出任何网络请求。
+
+### 配置
+
+| 字段 | 说明 |
+| --- | --- |
+| 所有者 | GitHub 用户名或组织名 |
+| 仓库 | 仓库名。**直接粘贴仓库页面地址也行**，离开输入框会自动拆成「所有者 + 仓库名」 |
+| 分支 | 默认 `main` |
+| 路径 | 仓库内的数据文件，默认 `data.json`，可带目录 |
+| 访问令牌 | Fine-grained PAT，权限只需 `Contents: Read and write`，并限定到上面那个仓库 |
+| 记住令牌 | 勾选则写入 localStorage，随备份一起带走；不勾则只留在本次会话，刷新即失效 |
+| 自动同步 | 数据变更后自动上传，等待时长 5–300 秒可调 |
+| 启动时拉取 | 打开应用时先用远端覆盖本地 |
+| 冲突策略 | 手动确认（最安全）/ 始终用本地 / 始终用远端 |
+
+三个按钮：**测试连接**（读仓库元信息，并顺带报告数据文件在不在）、
+**立即上传**、**立即下载**（下载前会先自动下载一份本地快照）。
+
+### 实现要点
+
+- **触发源只有一个**：`Dexie.on('storagemutated')` —— 写事务提交后触发，覆盖所有表，
+  不必给每个功能单独插桩，也不会漏掉新增的表（`lib/syncScheduler.ts`）
+- **不会无限循环上传**：连续写入按等待时长合并成一次，页面隐藏时立刻上传不再等待
+- **跨标签页不打架**：用 `BroadcastChannel` 广播「正在上传」，别的标签页会让路
+- **远端文件不存在是正常状态**：首次上传会创建它，连接测试不会因此报错
+- **令牌只在你自己指定的仓库里用**：请求全部指向 `api.github.com/repos/{owner}/{repo}`，
+  应用本身没有服务端，也没有第三方中转
+
+> 建议用一个**独立的私有仓库**存数据，不要放在 Pages 发布的那个分支里——
+> 那是公开的，同步上去等于公开了。
 
 ## 架构
 
@@ -164,13 +204,16 @@ features/*  ──useLiveQuery──►  db/repositories/*  ──►  Dexie / I
 
 ```
 src/
-├── app/          # router、lazyPages 路由懒加载表、navigation、store（ui / pomodoro / toast / command）
+├── app/          # router、lazyPages 路由懒加载表、navigation、store（ui / pomodoro / toast / command / sync）
 ├── db/           # schema（12 张表 + 5 个版本迁移）、seed 示例数据、9 个 repository（带单测）
-├── features/     # dashboard（Bento 网格 + 8 张卡）、todos、notes、calendar、
-│                 # habits、pomodoro、countdown、bookmarks、analytics、shell
-├── components/   # ui 原语（Panel/Button/Modal/Dropdown/DatePicker/进度环…）、layout 外壳、command 面板
-├── hooks/        # useNow / useTheme / useCounts / useClickOutside / useHotkeys
+├── features/     # dashboard（Bento 网格 + 8 张卡）、todos、notes、calendar、habits、
+│                 # pomodoro、countdown、bookmarks、analytics、trash、shell
+├── components/   # ui 原语（Panel/Button/Modal/Dropdown/DatePicker/进度环…）、layout 外壳、
+│                 # command 面板、ErrorBoundary
+├── hooks/        # useNow / useTheme / useCounts / useClickOutside / useHotkeys /
+│                 # useTodoReminders / useAutoSync / useGlobalErrorToast
 ├── lib/          # date / stats / backup / countdown / heatmap / calendarGrid / fuzzy 等纯函数
+│                 # + githubSync / syncEngine / syncScheduler（GitHub 同步）
 ├── styles/       # Tailwind 4 入口 + 葡萄紫主题令牌
 └── types/        # lunar-javascript 的类型声明
 
@@ -187,10 +230,21 @@ public/
 └── sw.js         # 应用的 Service Worker（手写，无第三方依赖）
 
 scripts/
-└── build-site.mjs # 把 site/ 组装到 dist/ 根目录（应用在 dist/app/）
+├── build-site.mjs # 把 site/ 组装到 dist/ 根目录（应用在 dist/app/）
+└── preview.mjs    # 本地预览服务器，结构与 GitHub Pages 一致
 ```
 
-规模：138 个 `.ts`/`.tsx`（其中 70 个 `.tsx`），约 14,318 行；另有 14 个测试文件。
+规模：约 20,000 行 `.ts`/`.tsx`，21 个测试文件、240 个用例。
+
+### 容错
+
+界面出错不该变成一片空白，所以有三层兜底：
+
+| 层 | 位置 | 作用 |
+| --- | --- | --- |
+| chunk 自愈 | `app/lazyPages.ts` | 发版后旧标签页按旧文件名取 chunk 会失败，此时自动刷新一次（10 秒冷却，防死循环） |
+| 错误边界 | `components/ui/ErrorBoundary.tsx` | 包在 `main.tsx` 最外层，任何渲染异常都给出人话提示与「重新加载」按钮，而不是白屏 |
+| 全局错误监听 | `hooks/useGlobalErrorToast.ts` | React 接不住的失败（Promise 拒绝、事件处理器里的异步错误）转成 toast，不再消失在控制台 |
 
 ## 官网
 
@@ -285,6 +339,8 @@ react-markdown（135 kB）跟着笔记页按需加载。
 | P9 | 消息中心（铃铛 + 派生消息面板） | ✅ |
 | P10 | 倒计时周期（每年/每月/每周） | ✅ |
 | P11 | 官网（three.js 动效 / 多主题 / 多语言）、应用迁至 `/app/`、双 SW 作用域 | ✅ |
+| P12 | GitHub 同步（自动上传 / 下载 / 冲突策略）、书签三视图、回收站独立页 | ✅ |
+| P13 | 故障自愈（chunk 失效自动刷新、错误边界、全局错误提示） | ✅ |
 
 P7 已完成：命令面板（含模糊搜索、跳转、输入即新建）、全局快捷键、36 个仓储层用例、
 manifest + 手写 Service Worker、按路由拆分 chunk。**核心操作都能在主页面与各模块页完成**，
@@ -292,3 +348,5 @@ manifest + 手写 Service Worker、按路由拆分 chunk。**核心操作都能�
 
 P11 新增了独立官网 `site/`（纯 HTML/CSS/JS + three.js），与应用同仓同站发布：
 官网在 `/workbench/`，应用迁到 `/workbench/app/`，两套 Service Worker 作用域互不重叠。
+
+P12 起同步成为可选项：不开仍然完全本地、零网络请求；开了才把数据发往你自己指定的仓库。

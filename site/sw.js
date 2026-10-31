@@ -12,7 +12,7 @@
  * 所以官网这个 SW 在 activate 时把 legacy 缓存删掉，顺带接管旧作用域，
  * 避免两份 SW 互相干扰。应用的 SW（workbench-app-*）不在清理范围内。
  */
-const VERSION = 'v2';
+const VERSION = 'v3';
 const CACHE = `workbench-site-${VERSION}`;
 
 const SITE_SHELL = ['./', './index.html', './styles.css', './main.js'];
@@ -58,34 +58,34 @@ self.addEventListener('fetch', (event) => {
   // 应用自己的作用域由它自己的 SW 处理，这里不插手
   if (url.pathname.startsWith('/workbench/app/')) return;
 
-  // 导航：network-first，断网回退缓存的官网首页
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE).then((cache) => cache.put('./index.html', copy));
-          return response;
-        })
-        .catch(async () => {
-          const cache = await caches.open(CACHE);
-          return (await cache.match('./index.html')) || (await cache.match('./')) || Response.error();
-        }),
-    );
-    return;
-  }
-
-  // 静态资源：cache-first
+  /**
+   * 一律 network-first，断网回退缓存。
+   *
+   * 官网的三个文件（index.html / styles.css / main.js）文件名不带哈希，
+   * 所以不能用应用那套 cache-first——那样改了文案，用户拿到的还是旧文件，
+   * 要等缓存被清掉才看得到变化。官网本来就小，网络优先换来的是
+   * 「每次访问都是最新的」，离线时仍然打得开。
+   */
   event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request).then((response) => {
+    fetch(request)
+      .then((response) => {
         if (response.ok) {
           const copy = response.clone();
           caches.open(CACHE).then((cache) => cache.put(request, copy));
         }
         return response;
-      });
-    }),
+      })
+      .catch(async () => {
+        const cache = await caches.open(CACHE);
+        const cached = await cache.match(request);
+        if (cached) return cached;
+        // 导航请求退到首页，其余就真的没有了
+        if (request.mode === 'navigate') {
+          return (
+            (await cache.match('./index.html')) || (await cache.match('./')) || Response.error()
+          );
+        }
+        return Response.error();
+      }),
   );
 });

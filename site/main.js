@@ -17,17 +17,17 @@ const DICT = {
     'nav.start': '上手',
     'cta.open': '打开应用',
     'cta.github': '查看源码',
-    'hero.eyebrow': '本地优先 · 零后端 · 无网络请求',
+    'hero.eyebrow': '本地优先 · 零后端 · 数据默认不出网',
     'hero.title1': '把一天要做的事',
     'hero.title2': '收进同一个页面',
     'hero.sub':
-      '待办、笔记、日历、习惯、番茄钟、计时、书签与数据看板，共享同一份本地数据。装上即用，数据永远留在你自己的浏览器里。',
+      '待办、笔记、日历、习惯、番茄钟、计时、书签与数据看板，共享同一份本地数据。装上即用，数据默认只留在你自己的浏览器里。',
     'stat.modules': '功能模块',
     'stat.tables': '本地数据表',
     'stat.tests': '单元测试',
-    'stat.network': '网络请求',
+    'stat.network': '默认网络请求',
     'stat.networkValue': '0',
-    'features.title': '九个模块，一份数据',
+    'features.title': '十个模块，一份数据',
     'features.sub': '每个模块都有独立页面，主页卡片里也能直接操作，不用来回跳转。',
     'hl.title': '不只是能用的功能',
     'hl.sub': '工程细节上做了不少取舍，这里挑最有代表性的几条。',
@@ -49,6 +49,9 @@ const DICT = {
     'hl.6.title': '离线可用，装成应用',
     'hl.6.body':
       '手写 Service Worker 缓存应用外壳，断网刷新照样打开。桌面 Chrome 一键安装到桌面，手机可以「添加到主屏幕」。',
+    'hl.7.title': '想要的话，也能备份到自己的 GitHub',
+    'hl.7.body':
+      '同步默认关闭，不开就一个字节都不出浏览器。开了之后数据只发往你指定的那个仓库，令牌还能限定到这一个仓库——相当于一个可版本控制的备份，顺便能在设备之间搬数据。',
     'stack.title': '技术选型',
     'stack.sub': '全部依赖克制在必要范围内，不引入组件库。',
     'stack.note':
@@ -61,8 +64,8 @@ const DICT = {
     'start.noteTitle': '首次打开会灌入一批示例数据',
     'start.note':
       '让主页立刻是「活的」而不是一片空白。想从零开始，用顶栏的「数据 → 清空本地数据」，之后不会再自动播种。',
-    'footer.built': '纯前端 · 零后端 · 无账号 · 无埋点',
-    'footer.copy': '数据保存在你自己的浏览器里，清缓存前记得先导出备份。',
+    'footer.built': '纯前端 · 零后端 · 无账号 · 无埋点 · 默认不出网',
+    'footer.copy': '数据默认保存在你自己的浏览器里；清缓存前记得先导出备份，或开启 GitHub 同步。',
     'mod.todo': '今日待办',
     'mod.todo.d': '智能列表、项目分组、子任务、优先级、拖拽排序、批量改期与回收站。',
     'mod.note': 'Markdown 笔记',
@@ -81,6 +84,10 @@ const DICT = {
     'mod.analytics.d': '完成量、专注时长、习惯达成、项目进度四张图，只读无干扰。',
     'mod.dashboard': '总览主页',
     'mod.dashboard.d': 'Bento 卡片网格可直接操作，卡片可拖拽重排、逐张显隐。',
+    'mod.trash': '回收站',
+    'mod.trash.d': '误删的待办、笔记、习惯保留 7 天，可恢复、永久删除或清空整类。',
+    'mod.sync': 'GitHub 同步',
+    'mod.sync.d': '把数据同步到自己的 GitHub 仓库，等于一个可版本控制的备份；默认关闭。',
   },
   en: {
     'nav.features': 'Features',
@@ -89,17 +96,17 @@ const DICT = {
     'nav.start': 'Get started',
     'cta.open': 'Open the app',
     'cta.github': 'Source code',
-    'hero.eyebrow': 'Local-first · No backend · Zero network calls',
+    'hero.eyebrow': 'Local-first · No backend · Nothing leaves by default',
     'hero.title1': 'Everything for your day,',
     'hero.title2': 'in one screen',
     'hero.sub':
-      'Todos, notes, calendar, habits, pomodoro, timers, bookmarks and analytics — all sharing one local dataset. Install it and go; your data never leaves the browser.',
+      'Todos, notes, calendar, habits, pomodoro, timers, bookmarks and analytics — all sharing one local dataset. Install it and go; your data stays in your own browser by default.',
     'stat.modules': 'Modules',
     'stat.tables': 'Local tables',
     'stat.tests': 'Unit tests',
-    'stat.network': 'Network calls',
+    'stat.network': 'Network calls by default',
     'stat.networkValue': '0',
-    'features.title': 'Nine modules, one dataset',
+    'features.title': 'Ten modules, one dataset',
     'features.sub':
       'Every module has a full page, and the dashboard cards let you act without navigating away.',
     'hl.title': 'More than a feature list',
@@ -122,6 +129,9 @@ const DICT = {
     'hl.6.title': 'Works offline, installs like an app',
     'hl.6.body':
       'A hand-written service worker caches the shell, so a reload works with no network. Install it from desktop Chrome or add it to your home screen.',
+    'hl.7.title': 'Backup to your own GitHub, if you want one',
+    'hl.7.body':
+      'Sync is off by default and nothing leaves the browser until you switch it on. When you do, the data goes to a repository you name, with a token that can be scoped to that one repository — a version-controlled backup and a way to move data between devices.',
     'stack.title': 'Stack',
     'stack.sub': 'Dependencies stay deliberately small — no component library.',
     'stack.note':
@@ -134,8 +144,8 @@ const DICT = {
     'start.noteTitle': 'Demo data is seeded on first open',
     'start.note':
       'So the dashboard is alive rather than blank. To start from scratch, use Data → Clear local data; the seed will not come back.',
-    'footer.built': 'Pure frontend · No backend · No accounts · No tracking',
-    'footer.copy': 'Your data lives in your own browser — export a backup before clearing the cache.',
+    'footer.built': 'Pure frontend · No backend · No accounts · No tracking · Nothing leaves by default',
+    'footer.copy': 'Your data stays in your own browser by default — export a backup before clearing the cache, or turn on GitHub sync.',
     'mod.todo': 'Todos',
     'mod.todo.d': 'Smart lists, projects, subtasks, priorities, drag ordering, bulk edits and a trash.',
     'mod.note': 'Markdown notes',
@@ -154,6 +164,10 @@ const DICT = {
     'mod.analytics.d': 'Four read-only charts: completions, focus time, habit goals and project progress.',
     'mod.dashboard': 'Dashboard',
     'mod.dashboard.d': 'A bento grid you can act in directly, with draggable, hideable cards.',
+    'mod.trash': 'Trash',
+    'mod.trash.d': 'Deleted todos, notes and habits stay for 7 days — restore, purge or empty each kind.',
+    'mod.sync': 'GitHub sync',
+    'mod.sync.d': 'Sync your data to a GitHub repository you own: a backup you can version. Off by default.',
   },
 };
 
@@ -168,6 +182,8 @@ const MODULES = [
   { key: 'mod.countdown', icon: 'M6 3h12M7 3v3l-4 9a3 3 0 003 4h12a3 3 0 003-4l-4-9V3M12 11v4' },
   { key: 'mod.bookmark', icon: 'M6 3h12v18l-6-5-6 5z' },
   { key: 'mod.analytics', icon: 'M4 20V10M10 20V4M16 20v-7M22 20H2' },
+  { key: 'mod.trash', icon: 'M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13M10 11v6M14 11v6' },
+  { key: 'mod.sync', icon: 'M9 19c-4 1-4-2-5-2M15 21c4-1 4-2 5-2M6 15a6 6 0 010-9M18 9a6 6 0 010 9M9 19c4 1 4-2 5-2' },
 ];
 
 const STACK = [

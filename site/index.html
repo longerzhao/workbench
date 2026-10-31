@@ -6,7 +6,7 @@
     <title>个人工作台 · Local-first Workbench</title>
     <meta
       name="description"
-      content="本地优先的个人工作台：待办、笔记、日历、习惯、番茄钟、计时、书签与数据看板，纯前端、零后端、无网络请求。"
+      content="本地优先的个人工作台：待办、笔记、日历、习惯、番茄钟、计时、书签与数据看板，纯前端、零后端，数据默认不出网。"
     />
     <meta name="theme-color" content="#7c3aed" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%237c3aed'/><path d='M16 7.5l1.9 5.6 5.6 1.9-5.6 1.9L16 22.5l-1.9-5.6L8.5 15l5.6-1.9z' fill='white'/></svg>" />
@@ -83,7 +83,7 @@
         </h1>
         <p class="hero-sub" data-i18n="hero.sub">
           待办、笔记、日历、习惯、番茄钟、计时、书签与数据看板，共享同一份本地数据。
-          装上即用，数据永远留在你自己的浏览器里。
+          装上即用，数据默认只留在你自己的浏览器里。
         </p>
 
         <div class="hero-actions">
@@ -96,7 +96,7 @@
         <dl class="hero-stats">
           <div class="stat">
             <dt data-i18n="stat.modules">功能模块</dt>
-            <dd>9</dd>
+            <dd>10</dd>
           </div>
           <div class="stat">
             <dt data-i18n="stat.tables">本地数据表</dt>
@@ -104,10 +104,10 @@
           </div>
           <div class="stat">
             <dt data-i18n="stat.tests">单元测试</dt>
-            <dd>193</dd>
+            <dd>240</dd>
           </div>
           <div class="stat">
-            <dt data-i18n="stat.network">网络请求</dt>
+            <dt data-i18n="stat.network">默认网络请求</dt>
             <dd data-i18n="stat.networkValue">0</dd>
           </div>
         </dl>
@@ -180,6 +180,14 @@
               桌面 Chrome 一键安装到桌面，手机可以「添加到主屏幕」。
             </p>
           </article>
+
+          <article class="card">
+            <h3 data-i18n="hl.7.title">想要的话，也能备份到自己的 GitHub</h3>
+            <p data-i18n="hl.7.body">
+              同步默认关闭，不开就一个字节都不出浏览器。开了之后数据只发往你指定的那个仓库，
+              令牌还能限定到这一个仓库——相当于一个可版本控制的备份，顺便能在设备之间搬数据。
+            </p>
+          </article>
         </div>
       </section>
 
@@ -244,11 +252,11 @@
 
     <footer class="footer">
       <p>
-        <span data-i18n="footer.built">纯前端 · 零后端 · 无账号 · 无埋点</span>
+        <span data-i18n="footer.built">纯前端 · 零后端 · 无账号 · 无埋点 · 默认不出网</span>
         <span class="dot">·</span>
         <a href="https://github.com/longerzhao/workbench" target="_blank" rel="noreferrer noopener">GitHub</a>
       </p>
-      <p class="footer-sub" data-i18n="footer.copy">数据保存在你自己的浏览器里，清缓存前记得先导出备份。</p>
+      <p class="footer-sub" data-i18n="footer.copy">数据默认保存在你自己的浏览器里；清缓存前记得先导出备份，或开启 GitHub 同步。</p>
     </footer>
 
     <script type="module" src="./main.js"></script>
