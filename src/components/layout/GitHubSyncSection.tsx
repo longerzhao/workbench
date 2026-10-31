@@ -7,6 +7,7 @@ import {
   DEBOUNCE_MAX_SEC,
   DEBOUNCE_MIN_SEC,
   isSyncConfigured,
+  parseRepoRef,
   validateSyncConfig,
   type ConflictPolicy,
 } from '@/lib/githubSync';
@@ -111,6 +112,16 @@ export function GitHubSyncSection() {
               placeholder="your-name"
               value={config.owner}
               onChange={(event) => config.setConfig({ owner: event.target.value })}
+              onBlur={() => {
+                // 粘贴了整条仓库链接时，顺手把所有者与仓库名都拆出来
+                const parsed = parseRepoRef(config.owner);
+                if (parsed.owner) {
+                  config.setConfig({
+                    owner: parsed.owner,
+                    repo: parsed.repo || config.repo,
+                  });
+                }
+              }}
             />
           </label>
           <label className="flex items-center gap-2">
@@ -120,9 +131,25 @@ export function GitHubSyncSection() {
               placeholder="workbench-data"
               value={config.repo}
               onChange={(event) => config.setConfig({ repo: event.target.value })}
+              onBlur={() => {
+                // 失焦时规整：粘贴整条链接的，拆成「所有者 + 仓库名」两个字段，
+                // 免得链接原样拼进 API 路径导致 404
+                const parsed = parseRepoRef(config.repo);
+                if (!parsed.repo) return;
+                config.setConfig({
+                  repo: parsed.repo,
+                  owner: parsed.owner || config.owner,
+                });
+              }}
             />
           </label>
         </div>
+
+        <p className="text-[0.6875rem] text-ink-subtle">
+          仓库只填名字即可；直接粘贴
+          <code className="mx-1 rounded bg-surface-2 px-1 py-0.5">https://github.com/你/仓库</code>
+          这类地址也行，离开输入框会自动拆成所有者与仓库名。
+        </p>
 
         <div className="grid grid-cols-2 gap-2">
           <label className="flex items-center gap-2">

@@ -17,6 +17,8 @@ import {
   MAX_FILE_BYTES,
   normalizePath,
   parseContentsResponse,
+  parseRepoRef,
+  resolveRepoRef,
   SyncError,
   toSyncError,
   utf8ToBase64,
@@ -254,5 +256,92 @@ describe('toSyncError', () => {
   it('未知值也能变成 SyncError', () => {
     expect(toSyncError('boom')).toBeInstanceOf(SyncError);
     expect(toSyncError(undefined)).toBeInstanceOf(SyncError);
+  });
+});
+
+describe('parseRepoRef', () => {
+  it('只给仓库名时所有者留空', () => {
+    expect(parseRepoRef('workbench-data')).toEqual({ owner: '', repo: 'workbench-data' });
+  });
+
+  it('owner/repo 形式两边都能拆出来', () => {
+    expect(parseRepoRef('longerzhao/workbench-data')).toEqual({
+      owner: 'longerzhao',
+      repo: 'workbench-data',
+    });
+  });
+
+  it('粘贴完整链接也能拆出所有者与仓库名', () => {
+    expect(parseRepoRef('https://github.com/longerzhao/workbench-data')).toEqual({
+      owner: 'longerzhao',
+      repo: 'workbench-data',
+    });
+  });
+
+  it('链接带 .git 后缀或深层路径时只取仓库名', () => {
+    expect(parseRepoRef('https://github.com/longerzhao/workbench-data.git')).toEqual({
+      owner: 'longerzhao',
+      repo: 'workbench-data',
+    });
+    expect(parseRepoRef('https://github.com/longerzhao/workbench-data/tree/main')).toEqual({
+      owner: 'longerzhao',
+      repo: 'workbench-data',
+    });
+  });
+
+  it('SSH 地址同样认得', () => {
+    expect(parseRepoRef('git@github.com:longerzhao/workbench-data.git')).toEqual({
+      owner: 'longerzhao',
+      repo: 'workbench-data',
+    });
+  });
+
+  it('空输入返回空结果', () => {
+    expect(parseRepoRef('   ')).toEqual({ owner: '', repo: '' });
+  });
+});
+
+describe('resolveRepoRef', () => {
+  const base: SyncConfig = { ...DEFAULT_SYNC_CONFIG };
+
+  it('所有者字段有值时优先用它', () => {
+    expect(resolveRepoRef({ ...base, owner: 'longerzhao', repo: 'workbench-data' })).toEqual({
+      owner: 'longerzhao',
+      repo: 'workbench-data',
+    });
+  });
+
+  it('仓库填了链接时用链接里的所有者兜底', () => {
+    expect(
+      resolveRepoRef({
+        ...base,
+        owner: '',
+        repo: 'https://github.com/longerzhao/workbench-data',
+      }),
+    ).toEqual({ owner: 'longerzhao', repo: 'workbench-data' });
+  });
+});
+
+describe('buildRepoUrl 容错', () => {
+  it('仓库填了整条链接也不会拼出畸形地址', () => {
+    const url = buildRepoUrl({
+      ...DEFAULT_SYNC_CONFIG,
+      owner: 'longerzhao',
+      repo: 'https://github.com/longerzhao/workbench-data',
+    });
+    expect(url).toBe('https://api.github.com/repos/longerzhao/workbench-data');
+  });
+
+  it('文件地址同样不受链接影响', () => {
+    const url = buildContentsUrl({
+      ...DEFAULT_SYNC_CONFIG,
+      owner: '',
+      repo: 'https://github.com/longerzhao/workbench-data',
+      path: 'data.json',
+      branch: 'main',
+    });
+    expect(url).toBe(
+      'https://api.github.com/repos/longerzhao/workbench-data/contents/data.json?ref=main',
+    );
   });
 });

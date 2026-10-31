@@ -75,6 +75,72 @@ export function normalizePath(path: string): string {
   return path.trim().replace(/^\/+/, '').replace(/\/+$/, '');
 }
 
+/** 去掉仓库名末尾的 .git */
+function stripGitSuffix(name: string): string {
+  return name.trim().replace(/\.git$/i, '');
+}
+
+export interface RepoRef {
+  owner: string;
+  repo: string;
+}
+
+/**
+ * 从用户输入里拆出 owner 与 repo。
+ *
+ * 用户看到的是仓库页面地址，顺手把整条链接粘进来是很自然的事——而且粘贴来的
+ * 东西若原样拼进 API 路径，请求会变成
+ * /repos/longerzhao/https%3A%2F%2Fgithub.com%2F... ，必然 404。
+ *
+ * 所以这里把常见的几种写法都认下来：
+ *
+ *   workbench-data                              → 只有仓库名
+ *   longerzhao/workbench-data                   → 所有者与仓库名
+ *   https://github.com/longerzhao/workbench-data
+ *   https://github.com/longerzhao/workbench-data/tree/main
+ *   git@github.com:longerzhao/workbench-data.git
+ */
+export function parseRepoRef(input: string): RepoRef {
+  const text = input.trim();
+  if (!text) return { owner: '', repo: '' };
+
+  // SSH：git@github.com:owner/repo.git —— 注意 owner 在前、repo 在后
+  const ssh = text.match(/^(?:ssh:\/\/)?git@([^:/]+)[:/](.+)$/i);
+  if (ssh) {
+    const parts = (ssh[2] ?? '').split('/').filter(Boolean);
+    const repo = stripGitSuffix(parts[parts.length - 1] ?? '');
+    const owner = parts.length > 1 ? (parts[0] ?? '') : '';
+    return { owner: owner.trim(), repo };
+  }
+
+  // 网页地址：https://github.com/owner/repo
+  const url = text.match(/^(?:https?:\/\/)?(?:www\.)?github\.com\/([^/\s]+)\/([^/\s?#]+)/i);
+  if (url) {
+    return { owner: (url[1] ?? '').trim(), repo: stripGitSuffix(url[2] ?? '') };
+  }
+
+  // owner/repo
+  const pair = text.match(/^([^/\s]+)\/([^/\s]+)$/);
+  if (pair) {
+    return { owner: (pair[1] ?? '').trim(), repo: stripGitSuffix(pair[2] ?? '') };
+  }
+
+  // 只填了仓库名
+  return { owner: '', repo: stripGitSuffix(text) };
+}
+
+/**
+ * 把配置里的 owner/repo 解析成 API 需要的两段。
+ * 所有者字段有值时以它为准（用户显式填的优先），否则用仓库字段里解析出来的。
+ */
+export function resolveRepoRef(config: Pick<SyncConfig, 'owner' | 'repo'>): RepoRef {
+  const parsed = parseRepoRef(config.repo);
+  return {
+    owner: (config.owner.trim() || parsed.owner).trim(),
+    repo: (parsed.repo || config.repo.trim()).trim(),
+  };
+}
+
 /**
  * 校验配置是否可用。返回 null 表示通过，否则返回给用户看的错误文案。
  * 只在 `enabled` 为 true 时校验——未启用时字段留空是正常的。
@@ -167,11 +233,10 @@ function encodeRepoPath(path: string): string {
 
 /** GET / PUT 共用的文件地址 */
 export function buildContentsUrl(config: SyncConfig, ref?: string): string {
-  const owner = encodeURIComponent(config.owner.trim());
-  const repo = encodeURIComponent(config.repo.trim());
+  const { owner, repo } = resolveRepoRef(config);
   const path = encodeRepoPath(config.path);
   const branch = (ref ?? config.branch).trim() || 'main';
-  return `${GITHUB_API}/repos/${owner}/${repo}/contents/${path}?ref=${encodeURIComponent(branch)}`;
+  return `${GITHUB_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${path}?ref=${encodeURIComponent(branch)}`;
 }
 
 /**
@@ -179,9 +244,8 @@ export function buildContentsUrl(config: SyncConfig, ref?: string): string {
  * 能在私有仓库上拿到 200，说明 token 至少对该仓库有读权限。
  */
 export function buildRepoUrl(config: SyncConfig): string {
-  const owner = encodeURIComponent(config.owner.trim());
-  const repo = encodeURIComponent(config.repo.trim());
-  return `${GITHUB_API}/repos/${owner}/${repo}`;
+  const { owner, repo } = resolveRepoRef(config);
+  return `${GITHUB_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
 }
 
 export interface PutFileBody {
@@ -278,7 +342,7 @@ export function describeGitHubError(status: number, detail?: string): string {
     case 403:
       return '权限不足或触发速率限制。请确认 PAT 勾选了 Contents: Read and write';
     case 404:
-      return '找不到仓库或文件。私有仓库请确认 PAT 已授权该仓库，且分支名正确';
+      return '找不到仓库。私有仓库请确认 PAT 已授权该仓库、分支名正确；仓库栏只填仓库名即可（粘贴链接会自动拆开）';
     case 409:
       return '文件已被其他设备修改（sha 不一致），请先拉取再上传';
     case 422:
