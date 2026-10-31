@@ -342,7 +342,7 @@ export function describeGitHubError(status: number, detail?: string): string {
     case 403:
       return '权限不足或触发速率限制。请确认 PAT 勾选了 Contents: Read and write';
     case 404:
-      return '找不到仓库。私有仓库请确认 PAT 已授权该仓库、分支名正确；仓库栏只填仓库名即可（粘贴链接会自动拆开）';
+      return '找不到仓库。私有仓库请确认 PAT 已授权该仓库；仓库栏只填仓库名即可（粘贴链接会自动拆开）';
     case 409:
       return '文件已被其他设备修改（sha 不一致），请先拉取再上传';
     case 422:

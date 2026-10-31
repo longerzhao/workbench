@@ -29,6 +29,7 @@ import {
   formatBytes,
   isSyncConfigured,
   parseContentsResponse,
+  resolveRepoRef,
   SyncError,
   toSyncError,
   type SyncConfig,
@@ -75,8 +76,11 @@ async function request(url: string, config: SyncConfig, init?: RequestInit): Pro
 }
 
 /**
- * 测试连通性：只读仓库元信息。
- * 不用文件接口，因为「文件还不存在」是首次使用的正常状态，不该算失败。
+ * 测试连通性：先读仓库元信息，再探一下数据文件。
+ *
+ * 仓库读得到就说明 token 对该仓库有权限——这才是「连接」的含义。
+ * 文件不存在是首次使用的正常状态，所以单独探测、只作为信息展示，
+ * 绝不能因为「还没上传过」就报连接失败。
  */
 export async function testConnection(config: SyncConfig): Promise<string> {
   if (!config.enabled) throw new SyncError('同步未启用');
@@ -86,8 +90,35 @@ export async function testConnection(config: SyncConfig): Promise<string> {
 
   const response = await request(buildRepoUrl(config), config);
   const repo = (await response.json()) as { full_name?: string; private?: boolean };
-  const name = repo.full_name ?? `${config.owner}/${config.repo}`;
-  return repo.private ? `${name}（私有仓库）连接正常` : `${name}（公开仓库）连接正常`;
+  const ref = resolveRepoRef(config);
+  const name = repo.full_name ?? `${ref.owner}/${ref.repo}`;
+  const visibility = repo.private ? '私有仓库' : '公开仓库';
+
+  const fileExists = await probeRemoteFile(config);
+  if (fileExists === true) {
+    return `${name}（${visibility}）连接正常；已找到 ${config.path}`;
+  }
+  if (fileExists === false) {
+    return `${name}（${visibility}）连接正常；远端还没有 ${config.path}，首次上传会创建它`;
+  }
+  return `${name}（${visibility}）连接正常`;
+}
+
+/**
+ * 探测远端数据文件是否存在。
+ * 返回 true/false；探测本身失败（网络等）时返回 null，由调用方省略这段信息。
+ */
+async function probeRemoteFile(config: SyncConfig): Promise<boolean | null> {
+  try {
+    const response = await fetch(buildContentsUrl(config), {
+      headers: buildHeaders(config.token),
+    });
+    if (response.ok) return true;
+    // 404 = 文件或分支还没有；其余状态交给主流程去报，这里不抢错误
+    return response.status === 404 ? false : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
