@@ -6,11 +6,13 @@ import { toast } from '@/app/store/toast';
 import { Toaster } from '@/components/ui/Toaster';
 import { pruneTrash } from '@/db';
 import { ensureSeeded } from '@/db/seed';
+import { useAutoSync } from '@/hooks/useAutoSync';
 import { useGlobalErrorToast } from '@/hooks/useGlobalErrorToast';
 import { useThemeEffect } from '@/hooks/useTheme';
 
 export function App() {
   useThemeEffect();
+  useAutoSync();
   useGlobalErrorToast();
 
   const [booting, setBooting] = useState(true);

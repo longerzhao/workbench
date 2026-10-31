@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@/styles/index.css';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { App } from './App';
 
 const container = document.getElementById('root');
@@ -10,7 +11,14 @@ if (!container) {
 
 createRoot(container).render(
   <StrictMode>
-    <App />
+    {/*
+      边界必须包在 App 外面：App 自己抛错时（比如某个 hook 的 effect 里
+      读到了 undefined），放在 App 内部的边界接不住，整棵树会直接消失，
+      留下一片空白。这里是最外层，也是最后一道防线。
+    */}
+    <ErrorBoundary variant="shell">
+      <App />
+    </ErrorBoundary>
   </StrictMode>,
 );
 

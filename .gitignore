@@ -39,3 +39,7 @@ public/shengxiao_pinyin_svg.zip
 
 # local agent workspace data (memory, scratch)
 .workbuddy/
+
+# lidow 本地工具产物：会话记录、规则、导出的备份文件
+.lidow/
+*.lidow-bak-*
